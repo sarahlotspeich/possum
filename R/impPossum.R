@@ -23,16 +23,12 @@ impPossum = function(imputation_formula, analysis_formula, data, B = 1, seed = N
   imp_mod = lm(formula = as.formula(imputation_formula), 
                data = data)
   
-  ## Extract means for conditional distribution from imputation model
-  mu = predict(object = imp_mod, 
-               newdata = data) 
-  
   ## Save the name of the variable being imputed
   imp_var = gsub("~.*", "", as.character(imputation_formula))[2]
   
   ## Extract means for conditional distribution from imputation model
-  mu = predict(object = imp_mod, 
-               newdata = data) 
+  mu = as.vector(predict(object = imp_mod, 
+                         newdata = data)) 
   
   # Reorder rows of data to have non-missing values first 
   data = data[order(is.na(data[, imp_var])), ]
