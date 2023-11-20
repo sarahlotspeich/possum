@@ -26,14 +26,14 @@ impPossum = function(imputation_formula, analysis_formula, data, B = 1, seed = N
   ## Save the name of the variable being imputed
   imp_var = gsub("~.*", "", as.character(imputation_formula))[2]
   
-  ## Extract means for conditional distribution from imputation model
-  mu = as.vector(predict(object = imp_mod, 
-                         newdata = data)) 
-  
   # Reorder rows of data to have non-missing values first 
   data = data[order(is.na(data[, imp_var])), ]
   N = nrow(data) ## total number of rows (missing or non-missing values)
   n = sum(!is.na(data[, imp_var])) ## number of rows with non-missing values, now ordered to be first 
+  
+  ## Extract means for conditional distribution from imputation model
+  mu = as.vector(predict(object = imp_mod, 
+                         newdata = data)) 
   
   # Multiple imputation
   ## Build matrix to hold coefficient estimates and variances from each imputation
@@ -49,14 +49,17 @@ impPossum = function(imputation_formula, analysis_formula, data, B = 1, seed = N
   ## Loop over the B iterations of imputation
   for (b in 1:B) {
     ### Draw imputed values from distribution (based on imputation model) for rows with missing values
+    imp_X = rnorm(n = (N - n), 
+                  mean = mu[-c(1:n)], 
+                  sd = sigma(imp_mod))
     data[-c(1:n), imp_var] = rnorm(n = (N - n), 
                                    mean = mu[-c(1:n)], 
                                    sd = sigma(imp_mod))
     
     ### Fit outcome model with imputed X (Poisson)
-    fit =  glm(formula = analysis_formula, 
-               family = poisson,
-               data = data)
+    fit = glm(formula = analysis_formula, 
+              family = poisson,
+              data = data)
     
     ### Save parameters
     imp_params[b, ] = coefficients(fit)
