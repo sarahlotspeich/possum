@@ -26,7 +26,7 @@
 #' \item{od_loglik_at_conv}{value of the observed-data log-likelihood at convergence.}
 #' @export
 
-poisreg2ph = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NULL, Bspline = NULL, data, theta_pred = NULL, initial_lr_params = "Zero", h_N_scale = 1, noSE = FALSE, TOL = 1E-4, MAX_ITER = 1000) {
+smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NULL, Bspline = NULL, data, theta_pred = NULL, initial_lr_params = "Zero", h_N_scale = 1, noSE = FALSE, TOL = 1E-4, MAX_ITER = 1000) {
   # Prepare for algorithm -------------------------------------------
   N = nrow(data) ## total sample size (Phase I)
   n = sum(data[, Validated]) ## validation study sample size (Phase II)
@@ -50,8 +50,8 @@ poisreg2ph = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
       return(list(coeff = data.frame(coeff = NA, se = NA),
                   Bspline_coeff = NA,
                   vcov = NA,
-                  converged = NA,
-                  se_converged = NA,
+                  converged = FALSE,
+                  se_converged = FALSE,
                   converged_msg = "B-spline error",
                   iterations = 0,
                   od_loglik_at_conv = NA))
@@ -289,7 +289,7 @@ poisreg2ph = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
     od_loglik_theta = smle_observed_data_loglik(N = N,
                                                 n = n,
                                                 Y = Y,
-                                                offset = offset, 
+                                                offset = offset,
                                                 X_unval = X_unval,
                                                 X_val = X_val,
                                                 Z = Z,
@@ -300,15 +300,14 @@ poisreg2ph = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
                                                 p = new_p)
 
     return(list(coeff = data.frame(coeff = new_theta, se = NA),
-                Bspline_coeff = cbind(k = comp_dat_val[, "k"], new_p),
+                #Bspline_coeff = cbind(k = comp_dat_val[, "k"], new_p),
                 vcov = NA,
                 converged = CONVERGED,
                 se_converged = NA,
                 converged_msg = CONVERGED_MSG,
                 iterations = it,
                 od_loglik_at_conv = od_loglik_theta))
-  }
-  else {
+  } else {
     # Estimate Cov(theta) using profile likelihood -------------------------
     h_N = h_N_scale * N ^ ( - 1 / 2) # perturbation ----------------------------
 

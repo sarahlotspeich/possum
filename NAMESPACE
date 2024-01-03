@@ -2,4 +2,4 @@
 
 export(impPossum)
 export(mlePossum)
-export(poisreg2ph)
+export(smlePossum)
