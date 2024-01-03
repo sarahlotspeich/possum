@@ -50,7 +50,11 @@ smle_observed_data_loglik = function(N, n, Y = NULL, offset = NULL, X_unval = NU
 
   # For unvalidated subjects ------------------------------------------------------
   ## Calculate P_theta(y|x) for all (y,xk) ----------------------------------------
-  lambda = comp_dat_all[-c(1:n), offset] * exp(as.numeric((cbind(int = 1, comp_dat_all[-c(1:n), theta_pred]) %*% theta)))
+  if (!is.null(offset)) {
+    lambda = comp_dat_all[-c(1:n), offset] * exp(as.numeric((cbind(int = 1, comp_dat_all[-c(1:n), theta_pred]) %*% theta)))
+  } else {
+    lambda = exp(as.numeric((cbind(int = 1, comp_dat_all[-c(1:n), theta_pred]) %*% theta)))
+  }
   pY_X = lambda ^ as.vector(comp_dat_all[-c(1:n), Y]) * exp(- lambda) / as.vector(factorial(comp_dat_all[-c(1:n), Y]))
   ## ---------------------------------------- Calculate P_theta(y|x) for all (y,xk)
   ################################################################################
