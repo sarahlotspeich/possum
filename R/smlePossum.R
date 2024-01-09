@@ -300,7 +300,7 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
                                                 p = new_p)
 
     return(list(coeff = data.frame(coeff = new_theta, se = NA),
-                Bspline_coeff = cbind(k = comp_dat_val[, "k"], new_p),
+                Bspline_coeff = cbind(k = 1:m, new_p),
                 vcov = NA,
                 converged = CONVERGED,
                 se_converged = NA,
