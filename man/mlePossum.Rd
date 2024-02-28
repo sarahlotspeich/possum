@@ -2,43 +2,22 @@
 % Please edit documentation in R/mlePossum.R
 \name{mlePossum}
 \alias{mlePossum}
-\title{Maximum likelihood estimation for Poisson regression problems with covariate measurement error
-This function returns the maximum likelihood estimates (MLEs) for the Poisson regression model with covariate measurement error from Mullan et al. (2023+)}
+\title{Maximum likelihood estimation for Poisson regression problems with covariate misclassification
+This function returns the maximum likelihood estimates (MLEs) for the Poisson regression model with covariate misclassification from Mullan et al. (2024+)}
 \usage{
-mlePossum(
-  start_guess,
-  x,
-  y,
-  z = NULL,
-  data,
-  maxtol = 1e-05,
-  maxiter = 1000,
-  verbose = FALSE
-)
+mlePossum(error_formula, analysis_formula, data)
 }
 \arguments{
-\item{start_guess}{numeric vector, treated as initial guess for model coefficients}
+\item{error_formula}{misclassification model formula (or coercible to formula), a formula expression as for other regression models. The response should be the error-free version of the error-prone of the covariate.}
 
-\item{x}{string, name of the column in \code{data} treated as the error-prone covariate}
+\item{analysis_formula}{analysis model formula (or coercible to formula), a formula expression as for other regression models. The response should be the Poisson model outcome, and, if needed, the offset can be included in this formula using the \code{offset()} function.}
 
-\item{y}{string, name of the column in \code{data} treated as the outcome}
-
-\item{z}{string or string vector, name(s) of the column(s) in \code{data} treated as the error-free covariates. Default is \code{z = NULL} for no error-free covariates.}
-
-\item{data}{dataset containing at least the variables \code{x}, \code{y}, and \code{z}.}
-
-\item{maxtol}{(optional) scalar, the maximum allowed difference between guesses used to define convergence. Default is \code{maxtol = 1E-5}.}
-
-\item{maxiter}{(optional) scalar, the maximum number of guesses allowed until algorithm finishes without convergence. Default is \code{maxiter = 1E3}.}
-
-\item{verbose}{(optional) logical, if \code{TRUE} progress messages are displayed throughout; if \code{FALSE} (the default) no messages are displayed.}
+\item{data}{dataset containing at least the variables included in \code{error_formula} and \code{analysis_formula}.}
 }
 \value{
-a list of two items
-\item{coefficients}{dataframe with final coefficient and standard error estimates for the analysis model.}
-\item{convergence}{string message indicating convergence status}
+dataframe with final coefficient and standard error estimates for the analysis model
 }
 \description{
-Maximum likelihood estimation for Poisson regression problems with covariate measurement error
-This function returns the maximum likelihood estimates (MLEs) for the Poisson regression model with covariate measurement error from Mullan et al. (2023+)
+Maximum likelihood estimation for Poisson regression problems with covariate misclassification
+This function returns the maximum likelihood estimates (MLEs) for the Poisson regression model with covariate misclassification from Mullan et al. (2024+)
 }
