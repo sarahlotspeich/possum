@@ -25,18 +25,18 @@ loglik_mat = function(beta_eta,
     } else {
       complete_data = cbind(id = 1:n, data[1:n, c(Y_name, X_name, Z_name, Xstar_name)])
     }
-  }
-  else{ #case without covariates
-    queried_data = cbind(id = 1:n, data[1:n, c(Y_name, X_name, Xstar_name)])
-    unqueried_data = rbind(
-      cbind(id = (n+1):N, data[-c(1:n), Y_name], X_name = 0, data[-c(1:n), c(Xstar_name)]),
-      cbind(id = (n+1):N, data[-c(1:n), Y_name], X_name = 1, data[-c(1:n), c(Xstar_name)])
-    )
-    colnames(unqueried_data) = c("id", Y_name, X_name, Xstar_name)
-    complete_data = data.matrix(rbind(queried_data, unqueried_data))
-  } else {
-    complete_data = cbind(id = 1:n, data[1:n, c(Y_name, X_name, Xstar_name)])
-  }
+  } else{ #case without covariates
+    if (n < N) {
+      queried_data = cbind(id = 1:n, data[1:n, c(Y_name, X_name, Z_name, Xstar_name)])
+      unqueried_data = rbind(
+        cbind(id = (n+1):N, data[-c(1:n), Y_name], X_name = 0, data[-c(1:n), Xstar_name]),
+        cbind(id = (n+1):N, data[-c(1:n), Y_name], X_name = 1, data[-c(1:n), Xstar_name])
+      )
+      colnames(unqueried_data) = c("id", Y_name, X_name, Xstar_name)
+      complete_data = data.matrix(rbind(queried_data, unqueried_data))
+    } else {
+      complete_data = cbind(id = 1:n, data[1:n, c(Y_name, X_name, Xstar_name)])
+      }
   }
   
   # Compute log-likelihood 
