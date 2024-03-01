@@ -1,3 +1,4 @@
+![alt text](hex.png)
 # POiSSon Regression with Uncertain Measurements (POSSUM)
 
 ## Package Installation
