@@ -1,4 +1,6 @@
-![alt text](hex.png)
+<p align="center">
+  <img src="hex.png" width="350" title="a possum dressed like a detective surrounded by colorful question marks">
+</p> 
 # POiSSon Regression with Uncertain Measurements (POSSUM)
 
 ## Package Installation
