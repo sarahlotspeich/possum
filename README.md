@@ -4,7 +4,7 @@
 
 <p style="display:inline-block;">
   <img src="hex.png" width="350" title="a possum dressed like a detective surrounded by colorful question marks">
-  # POiSSon Regression with Uncertain Measurements (POSSUM)
+  <h1>POiSSon Regression with Uncertain Measurements (POSSUM)</h1>
 </p>
 
 # POiSSon Regression with Uncertain Measurements (POSSUM)
