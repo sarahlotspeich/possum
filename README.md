@@ -1,8 +1,3 @@
-<header>
-    <img src="hex.png" width="200" title="a possum dressed like a detective surrounded by colorful question marks">
-    <h1>POiSSon Regression with Uncertain Measurements (POSSUM)</h1>
-  </header>
-
 <p style="display:inline-block;">
   <img src="hex.png" width="200" title="a possum dressed like a detective surrounded by colorful question marks">
   <h1>POiSSon Regression with Uncertain Measurements (POSSUM)</h1>
