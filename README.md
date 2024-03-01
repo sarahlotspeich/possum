@@ -1,5 +1,5 @@
 <p style="display:inline-block;">
-  <img src="hex.png" width="300" title="a possum dressed like a detective surrounded by colorful question marks">
+  <img src="hex.png" width="200" title="a possum dressed like a detective surrounded by colorful question marks">
   <h1>POiSSon Regression with Uncertain Measurements (POSSUM)</h1>
 </p>
 
