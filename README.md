@@ -10,5 +10,5 @@ Installation of the `possum` from GitHub requires the
 package and can be done in the following way.
 
 ``` r
-devtools::install_github(repo = "sarahlotspeich/possum)
+devtools::install_github(repo = "sarahlotspeich/possum")
 ```
