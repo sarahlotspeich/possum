@@ -40,26 +40,20 @@ loglik_mat = function(beta_eta,
   }
   
   # Compute log-likelihood 
-  ## P(Y|X,Z) from Poisson distribution
-  if(!is.null(Z_name)){
+  if(!is.null(Z_name)){ ## P(Y|X,Z) from Poisson distribution
     lambdaY = exp(beta_eta[1] + beta_eta[2] * complete_data[, X_name] + beta_eta[3] * complete_data[, Z_name])
-  }
-  ## P(Y|X) from Poisson distribution
-  else{
+  } else{ ## P(Y|X) from Poisson distribution
     lambdaY = exp(beta_eta[1] + beta_eta[2] * complete_data[, X_name])
   }
   ### Dazzle fix: replace y with data[, Y_name]
   pYgivXZ = dpois(x = complete_data[, Y_name], lambda = lambdaY)
   
-  ## P(X|X*,Z) from Bernoulli distribution
-  if(!is.null(Z_name)){
+  if(!is.null(Z_name)){ ## P(X|X*,Z) from Bernoulli distribution
     pXgivXstarZ = 1 / (1 + exp(-(beta_eta[4] + beta_eta[5] * complete_data[, Xstar_name] + beta_eta[6] * complete_data[, Z_name]))) ^ complete_data[, X_name] * 
     (1 - 1 / (1 + exp(-(beta_eta[4] + beta_eta[5] * complete_data[, Xstar_name] + beta_eta[6] * complete_data[, Z_name])))) ^ (1 - complete_data[, X_name]) 
-  }
-  else{
-  ## P(X|X*) from Bernoulli distribution
-  pXgivXstarZ = 1 / (1 + exp(-(beta_eta[4] + beta_eta[5] * complete_data[, Xstar_name]))) ^ complete_data[, X_name] * 
-    (1 - 1 / (1 + exp(-(beta_eta[4] + beta_eta[5] * complete_data[, Xstar_name])))) ^ (1 - complete_data[, X_name]) 
+  } else{ ## P(X|X*) from Bernoulli distribution
+    pXgivXstarZ = 1 / (1 + exp(-(beta_eta[3] + beta_eta[4] * complete_data[, Xstar_name]))) ^ complete_data[, X_name] * 
+    (1 - 1 / (1 + exp(-(beta_eta[3] + beta_eta[4] * complete_data[, Xstar_name])))) ^ (1 - complete_data[, X_name]) 
   }
   ## P(Y, X|X*, Z) OR P(Y,X|X*) 
   pYXgivXstarZ = pYgivXZ * pXgivXstarZ
