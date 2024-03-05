@@ -12,3 +12,5 @@ package and can be done in the following way.
 ``` r
 devtools::install_github(repo = "sarahlotspeich/possum")
 ```
+
+Art for the hex sticker was made with the help of Gencraft. 
