@@ -28,6 +28,7 @@ mlePossum = function(error_formula, analysis_formula, data) {
   get_Xstar_name = setdiff(error_covar, analysis_covar) 
   
   get_Z_name = intersect(error_covar, analysis_covar) 
+  #get_offset_name = ##smart string replacement here
 
   ## Add queried/non-missing data indicator
   data[, "Q"] = as.numeric(!is.na(data[, get_X_name]))
@@ -42,6 +43,7 @@ mlePossum = function(error_formula, analysis_formula, data) {
                       Z_name = get_Z_name,
                       Xstar_name = get_Xstar_name,
                       Q_name = "Q",
+                      offset_name = get_offset_name,
                       data = data)
   } else {
     optim_res = optim(fn = loglik_mat, 
@@ -51,6 +53,7 @@ mlePossum = function(error_formula, analysis_formula, data) {
                       Y_name = get_Y_name,
                       X_name = get_X_name,
                       Xstar_name = get_Xstar_name,
+                      offset_name = get_offset_name,
                       Q_name = "Q",
                       data = data)
   }

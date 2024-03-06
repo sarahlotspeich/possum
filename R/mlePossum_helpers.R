@@ -1,7 +1,9 @@
 loglik_mat = function(beta_eta, 
                       Y_name, X_name, 
                       Z_name = NULL, Xstar_name, 
-                      Q_name, data,
+                      Q_name, 
+                      offset_name = NULL,
+                      data,
                       verbose = FALSE) {
   #print(beta_eta)
   
@@ -41,9 +43,18 @@ loglik_mat = function(beta_eta,
   
   # Compute log-likelihood 
   if(!is.null(Z_name)){ ## P(Y|X,Z) from Poisson distribution
-    lambdaY = exp(beta_eta[1] + beta_eta[2] * complete_data[, X_name] + beta_eta[3] * complete_data[, Z_name])
+    if(!is.null(offset)){ #has offset
+    lambdaY = complete_data[, offset_name] * exp(beta_eta[1] + beta_eta[2] * complete_data[, X_name] + beta_eta[3] * complete_data[, Z_name])
+    } else{ #no offset
+    lambdaY = exp(beta_eta[1] + beta_eta[2] * complete_data[, X_name] + beta_eta[3] * complete_data[, Z_name])  
+    }
+    
   } else{ ## P(Y|X) from Poisson distribution
+    if(!is.null(offset)){ #has offset
+    lambdaY = complete_data[, offset_name] * exp(beta_eta[1] + beta_eta[2] * complete_data[, X_name])
+    } else{ #no offset
     lambdaY = exp(beta_eta[1] + beta_eta[2] * complete_data[, X_name])
+    }
   }
   ### Dazzle fix: replace y with data[, Y_name]
   pYgivXZ = dpois(x = complete_data[, Y_name], lambda = lambdaY)
