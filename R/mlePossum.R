@@ -2,12 +2,13 @@
 #' This function returns the maximum likelihood estimates (MLEs) for the Poisson regression model with covariate misclassification from Mullan et al. (2024+)
 #'
 #' @param error_formula misclassification model formula (or coercible to formula), a formula expression as for other regression models. The response should be the error-free version of the error-prone of the covariate. 
-#' @param analysis_formula analysis model formula (or coercible to formula), a formula expression as for other regression models. The response should be the Poisson model outcome, and, if needed, the offset can be included in this formula using the \code{offset()} function.
+#' @param analysis_formula analysis model formula (or coercible to formula), a formula expression as for other regression models. The response should be the Poisson model outcome, and, if needed, the offset can be provided as the \code{offset} argument.
+#' @param offset optional, variable name for the analysis model offset. Default is \code{offset = NULL} for no offset. 
 #' @param data dataset containing at least the variables included in \code{error_formula} and \code{analysis_formula}.
 #' @return dataframe with final coefficient and standard error estimates for the analysis model
 #' @export
 
-mlePossum = function(error_formula, analysis_formula, data) {
+mlePossum = function(error_formula, analysis_formula, offset = NULL, data) {
   ## Fit complete-case models to get initial values 
   ### P(Y|X,Z) 
   cc_fit = glm(formula = as.formula(analysis_formula), 
@@ -28,7 +29,6 @@ mlePossum = function(error_formula, analysis_formula, data) {
   get_Xstar_name = setdiff(error_covar, analysis_covar) 
   
   get_Z_name = intersect(error_covar, analysis_covar) 
-  #get_offset_name = ##smart string replacement here
 
   ## Add queried/non-missing data indicator
   data[, "Q"] = as.numeric(!is.na(data[, get_X_name]))
@@ -43,7 +43,7 @@ mlePossum = function(error_formula, analysis_formula, data) {
                       Z_name = get_Z_name,
                       Xstar_name = get_Xstar_name,
                       Q_name = "Q",
-                      offset_name = get_offset_name,
+                      offset_name = offset,
                       data = data)
   } else {
     optim_res = optim(fn = loglik_mat, 
@@ -53,7 +53,7 @@ mlePossum = function(error_formula, analysis_formula, data) {
                       Y_name = get_Y_name,
                       X_name = get_X_name,
                       Xstar_name = get_Xstar_name,
-                      offset_name = get_offset_name,
+                      offset_name = offset,
                       Q_name = "Q",
                       data = data)
   }
