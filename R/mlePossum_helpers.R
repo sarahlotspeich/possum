@@ -17,44 +17,41 @@ loglik_mat = function(beta_eta,
   # Create matrix of complete data
   if(!is.null(Z_name)){ #case with covariates
     if (n < N) {
-      queried_data = cbind(id = 1:n, data[1:n, c(Y_name, X_name, Z_name, Xstar_name)])
+      queried_data = cbind(id = 1:n, data[1:n, c(Y_name, X_name, Z_name, Xstar_name, offset_name)])
       unqueried_data = rbind(
-        cbind(id = (n+1):N, data[-c(1:n), Y_name], X_name = 0, data[-c(1:n), c(Z_name, Xstar_name)]),
-        cbind(id = (n+1):N, data[-c(1:n), Y_name], X_name = 1, data[-c(1:n), c(Z_name, Xstar_name)])
+        cbind(id = (n+1):N, data[-c(1:n), Y_name], X_name = 0, data[-c(1:n), c(Z_name, Xstar_name, offset_name)]),
+        cbind(id = (n+1):N, data[-c(1:n), Y_name], X_name = 1, data[-c(1:n), c(Z_name, Xstar_name, offset_name)])
       )
-      colnames(unqueried_data) = c("id", Y_name, X_name, Z_name, Xstar_name)
+      colnames(unqueried_data) = c("id", Y_name, X_name, Z_name, Xstar_name, offset_name)
       complete_data = data.matrix(rbind(queried_data, unqueried_data))
     } else {
-      complete_data = cbind(id = 1:n, data[1:n, c(Y_name, X_name, Z_name, Xstar_name)])
+      complete_data = cbind(id = 1:n, data[1:n, c(Y_name, X_name, Z_name, Xstar_name, offset_name)])
     }
   } else{ #case without covariates
     if (n < N) {
-      queried_data = cbind(id = 1:n, data[1:n, c(Y_name, X_name, Z_name, Xstar_name)])
+      queried_data = cbind(id = 1:n, data[1:n, c(Y_name, X_name, Z_name, Xstar_name, offset_name)])
       unqueried_data = rbind(
-        cbind(id = (n+1):N, data[-c(1:n), Y_name], X_name = 0, data[-c(1:n), Xstar_name]),
-        cbind(id = (n+1):N, data[-c(1:n), Y_name], X_name = 1, data[-c(1:n), Xstar_name])
+        cbind(id = (n+1):N, data[-c(1:n), Y_name], X_name = 0, data[-c(1:n), c(Xstar_name, offset_name)]),
+        cbind(id = (n+1):N, data[-c(1:n), Y_name], X_name = 1, data[-c(1:n), c(Xstar_name, offset_name)])
       )
-      colnames(unqueried_data) = c("id", Y_name, X_name, Xstar_name)
+      colnames(unqueried_data) = c("id", Y_name, X_name, Xstar_name, offset_name)
       complete_data = data.matrix(rbind(queried_data, unqueried_data))
     } else {
-      complete_data = cbind(id = 1:n, data[1:n, c(Y_name, X_name, Xstar_name)])
+      complete_data = cbind(id = 1:n, data[1:n, c(Y_name, X_name, Xstar_name, offset_name)])
       }
   }
   
   # Compute log-likelihood 
   if(!is.null(Z_name)){ ## P(Y|X,Z) from Poisson distribution
-    if(!is.null(offset)){ #has offset
-    lambdaY = complete_data[, offset_name] * exp(beta_eta[1] + beta_eta[2] * complete_data[, X_name] + beta_eta[3] * complete_data[, Z_name])
-    } else{ #no offset
     lambdaY = exp(beta_eta[1] + beta_eta[2] * complete_data[, X_name] + beta_eta[3] * complete_data[, Z_name])  
-    }
-    
+    if(!is.null(offset_name)){ #has offset_name
+      lambdaY = complete_data[, offset_name] * lambdaY
+    } 
   } else{ ## P(Y|X) from Poisson distribution
-    if(!is.null(offset)){ #has offset
-    lambdaY = complete_data[, offset_name] * exp(beta_eta[1] + beta_eta[2] * complete_data[, X_name])
-    } else{ #no offset
     lambdaY = exp(beta_eta[1] + beta_eta[2] * complete_data[, X_name])
-    }
+    if(!is.null(offset_name)){ #has offset
+      lambdaY = complete_data[, offset_name] * lambdaY
+    } 
   }
   ### Dazzle fix: replace y with data[, Y_name]
   pYgivXZ = dpois(x = complete_data[, Y_name], lambda = lambdaY)
