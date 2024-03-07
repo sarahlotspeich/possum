@@ -34,7 +34,7 @@ mlePossum = function(error_formula, analysis_formula, offset = NULL, data) {
                  data = data, 
                  family = poisson)$coefficients
   } else {
-    cc_fit = glm(formula = as.formula(paste0(paste(get_Y_name, paste(get_X_name, collapse = "+")), "+offset(log(", offset, ")")), 
+    cc_fit = glm(formula = as.formula(paste0(paste(get_Y_name, paste(get_X_name, collapse = "+"), sep = "~"), "+offset(log(", offset, ")")), 
                  data = data, 
                  family = poisson)$coefficients
   }
