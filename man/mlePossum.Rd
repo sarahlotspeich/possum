@@ -12,7 +12,7 @@ mlePossum(error_formula, analysis_formula, offset = NULL, data)
 
 \item{analysis_formula}{analysis model formula (or coercible to formula), a formula expression as for other regression models. The response should be the Poisson model outcome, and, if needed, the offset can be provided as the \code{offset} argument.}
 
-\item{offset}{optional, variable name for the analysis model offset. Default is \code{offset = NULL} for no offset.}
+\item{offset}{optional, variable name string for the analysis model offset. Default is \code{offset = NULL} for no offset.}
 
 \item{data}{dataset containing at least the variables included in \code{error_formula} and \code{analysis_formula}.}
 }
