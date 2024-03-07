@@ -11,7 +11,7 @@
 mlePossum = function(error_formula, analysis_formula, offset = NULL, data) {
   ## Fit complete-case models to get initial values 
   ### P(Y|X,Z) 
-  if (!is.null(offset)) {
+  if (is.null(offset)) {
     cc_fit = glm(formula = as.formula(analysis_formula), 
                  data = data, 
                  family = poisson)$coefficients
