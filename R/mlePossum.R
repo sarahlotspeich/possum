@@ -9,24 +9,6 @@
 #' @export
 
 mlePossum = function(error_formula, analysis_formula, offset = NULL, data) {
-  ## Fit complete-case models to get initial values 
-  ### P(Y|X,Z) 
-  if (is.null(offset)) {
-    cc_fit = glm(formula = as.formula(analysis_formula), 
-                 data = data, 
-                 family = poisson)$coefficients
-  } else {
-    cc_fit = glm(formula = as.formula(analysis_formula), 
-                 data = data, 
-                 family = poisson,
-                 offset = log(data[, offset]))$coefficients
-  }
-  ### P(X|X*,Z)
-  cc_fit = c(cc_fit, 
-             glm(formula = as.formula(error_formula), 
-                 data = data, 
-                 family = binomial)$coefficients)
-
   ## Extract variable names from user-specified formulas 
   get_Y_name = as.character(as.formula(analysis_formula))[2]
   get_X_name = as.character(as.formula(error_formula))[2]
@@ -45,6 +27,23 @@ mlePossum = function(error_formula, analysis_formula, offset = NULL, data) {
   
   get_Z_name = intersect(error_covar, analysis_covar) 
 
+  ## Fit complete-case models to get initial values 
+  ### P(Y|X,Z) 
+  if (is.null(offset)) {
+    cc_fit = glm(formula = as.formula(analysis_formula), 
+                 data = data, 
+                 family = poisson)$coefficients
+  } else {
+    cc_fit = glm(formula = as.formula(paste0(paste(get_Y_name, paste(get_X_name, collapse = "+")), "+offset(log(", offset, ")")), 
+                 data = data, 
+                 family = poisson)$coefficients
+  }
+  ### P(X|X*,Z)
+  cc_fit = c(cc_fit, 
+             glm(formula = as.formula(error_formula), 
+                 data = data, 
+                 family = binomial)$coefficients)
+  
   ## Add queried/non-missing data indicator
   data[, "Q"] = as.numeric(!is.na(data[, get_X_name]))
   
