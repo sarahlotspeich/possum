@@ -11,9 +11,16 @@
 mlePossum = function(error_formula, analysis_formula, offset = NULL, data) {
   ## Fit complete-case models to get initial values 
   ### P(Y|X,Z) 
-  cc_fit = glm(formula = as.formula(analysis_formula), 
-               data = data, 
-               family = poisson)$coefficients
+  if (!is.null(offset)) {
+    cc_fit = glm(formula = as.formula(analysis_formula), 
+                 data = data, 
+                 family = poisson)$coefficients
+  } else {
+    cc_fit = glm(formula = as.formula(analysis_formula), 
+                 data = data, 
+                 family = poisson,
+                 offset = log(data[, offset]))$coefficients
+  }
   ### P(X|X*,Z)
   cc_fit = c(cc_fit, 
              glm(formula = as.formula(error_formula), 
@@ -24,8 +31,16 @@ mlePossum = function(error_formula, analysis_formula, offset = NULL, data) {
   get_Y_name = as.character(as.formula(analysis_formula))[2]
   get_X_name = as.character(as.formula(error_formula))[2]
   
-  analysis_covar = unlist(strsplit(x = gsub(pattern = " ", replacement = "", x = as.character(as.formula(analysis_formula))[3]), split = "+", fixed = TRUE))
-  error_covar = unlist(strsplit(x = gsub(pattern = " ", replacement = "", x = as.character(as.formula(error_formula))[3]), split = "+", fixed = TRUE))
+  analysis_covar = unlist(strsplit(x = gsub(pattern = " ", 
+                                            replacement = "", 
+                                            x = as.character(as.formula(analysis_formula))[3]), 
+                                   split = "+", 
+                                   fixed = TRUE))
+  error_covar = unlist(strsplit(x = gsub(pattern = " ", 
+                                         replacement = "", 
+                                         x = as.character(as.formula(error_formula))[3]), 
+                                split = "+", 
+                                fixed = TRUE))
   get_Xstar_name = setdiff(error_covar, analysis_covar) 
   
   get_Z_name = intersect(error_covar, analysis_covar) 
