@@ -93,5 +93,6 @@ mlePossum = function(error_formula, analysis_formula, offset = NULL, data) {
   }
   
   ## Return model output
-  return(res)
+  return(list(coefficients = res, 
+              convergence = optim_res$convergence))
 }
