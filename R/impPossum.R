@@ -88,7 +88,7 @@ impPossum = function(imputation_formula, analysis_formula, data, adjMatrix = NUL
       imp_params[b, ] = as.data.frame(summary(fit)["beta_table"])[, 1]
       
       ### Save standard errors
-      imp_vars[b, ] = as.data.frame(summary(fit)["beta_table"])[, 2]
+      imp_vars[b, ] = as.data.frame(summary(fit)["beta_table"])[, 2] ^ 2
     }
   }
   
