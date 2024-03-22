@@ -4,19 +4,29 @@
 #' @param imputation_formula imputation model formula (or coercible to formula) passed through to \code{lm()}, a formula expression as for other regression models. The response should be the error-prone version of the covariate. 
 #' @param analysis_formula analysis model formula (or coercible to formula) passed through to \code{glm()}, a formula expression as for other regression models. The response should be the Poisson model outcome, and, if needed, the offset can be included in this formula using the \code{offset()} function.
 #' @param data dataset containing at least the variables included in \code{imputation_formula} and \code{analysis_formula}.
+#' @param adjMatrix (optional) adjacency matrix for observations in \code{data} to be passed through to \code{spaMM::fitme()}. If \code{adjMatrix} is not \code{NULL} (the default), then a spatial random effect should be included in \code{analysis_formula}.
 #' @param B desired number of imputations. Default is \code{B = 1}, which is single imputation.
 #' @param seed (optional) random seed to use for reproducibility of random draws. Default is \code{seed = NULL}, which does not reset the random seed inside the function. 
 #' @return dataframe with final coefficient and standard error estimates for the analysis model, pooled according to Rubin's rules.
 #' @export
+#' @importFrom spaMM fitme
 
-impPossum = function(imputation_formula, analysis_formula, data, B = 1, seed = NULL) {
+impPossum = function(imputation_formula, analysis_formula, data, adjMatrix = NULL, B = 1, seed = NULL) {
   # Fit complete case model (Poisson)
   ## Based on user-supplied analysis_formula
   ## To get the dimension of the analysis model parameters 
-  cc_fit =  glm(formula = analysis_formula,
-                family = poisson,
-                data = data)
-  dim_beta = length(coefficients(cc_fit))
+  if (is.null(adjMatrix)) {
+    cc_fit =  glm(formula = analysis_formula,
+                  family = poisson,
+                  data = data)
+    dim_beta = length(coefficients(cc_fit))
+  } else {
+    cc_fit = fitme(formula = analysis_formula, 
+                   family = poisson, 
+                   adjMatrix = adj_matrix,
+                   data = data)
+    dim_beta = nrow(as.data.frame(summary(cc_fit)["beta_table"]))
+  }
 
   # Fit imputation model (linear)
   ## Based on user-supplied imputation_formula
@@ -56,23 +66,45 @@ impPossum = function(imputation_formula, analysis_formula, data, B = 1, seed = N
                                    mean = mu[-c(1:n)], 
                                    sd = sigma(imp_mod))
     
-    ### Fit outcome model with imputed X (Poisson)
-    fit = glm(formula = analysis_formula, 
-              family = poisson,
-              data = data)
-    
-    ### Save parameters
-    imp_params[b, ] = coefficients(fit)
-    
-    ### Save standard errors
-    imp_vars[b, ] = diag(vcov(fit))
+    if (is.null(adjMatrix)) {
+      ### Fit outcome model with imputed X (Poisson)
+      fit = glm(formula = analysis_formula, 
+                family = poisson,
+                data = data)
+      
+      ### Save parameters
+      imp_params[b, ] = coefficients(fit)
+      
+      ### Save standard errors
+      imp_vars[b, ] = diag(vcov(fit))
+    } else {
+      ### Fit outcome model with imputed X (Poisson)
+      fit = fitme(formula = analysis_formula, 
+                  family = poisson, 
+                  adjMatrix = adj_matrix,
+                  data = data)
+ 
+      ### Save parameters
+      imp_params[b, ] = as.data.frame(summary(fit)["beta_table"])[, 1]
+      
+      ### Save standard errors
+      imp_vars[b, ] = as.data.frame(summary(fit)["beta_table"])[, 2]
+    }
   }
   
   # Save pooled parameter estimates
-  res = data.frame(Coefficient = names(coefficients(fit)), 
-                   Estimate = colMeans(imp_params), 
-                   Standard.Error = sapply(X = 1:dim_beta, 
-                                           FUN = function(c) sqrt(mean(imp_vars[, c]) + (B + 1) * mean((imp_params[, c] - mean(imp_params[, c])) ^ 2))))
+  if (is.null(adjMatrix)) { 
+    res = data.frame(Coefficient = names(coefficients(fit)), 
+                     Estimate = colMeans(imp_params), 
+                     Standard.Error = sapply(X = 1:dim_beta, 
+                                             FUN = function(c) sqrt(mean(imp_vars[, c]) + (B + 1) * mean((imp_params[, c] - mean(imp_params[, c])) ^ 2))))
+  } else {
+    res = data.frame(Coefficient = rownames(as.data.frame(summary(fit)["beta_table"])), 
+                     Estimate = colMeans(imp_params), 
+                     Standard.Error = sapply(X = 1:dim_beta, 
+                                             FUN = function(c) sqrt(mean(imp_vars[, c]) + (B + 1) * mean((imp_params[, c] - mean(imp_params[, c])) ^ 2))))
+  }
+  
   
   # Return results 
   return(res)

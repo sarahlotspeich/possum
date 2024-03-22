@@ -5,7 +5,14 @@
 \title{Multiple imputation for Poisson regression problems with covariate measurement error
 This function returns the multiple imputation (MI) estimates for the Poisson regression model with covariate measurement error from Lotspeich et al. (2023+)}
 \usage{
-impPossum(imputation_formula, analysis_formula, data, B = 1, seed = NULL)
+impPossum(
+  imputation_formula,
+  analysis_formula,
+  data,
+  adjMatrix = NULL,
+  B = 1,
+  seed = NULL
+)
 }
 \arguments{
 \item{imputation_formula}{imputation model formula (or coercible to formula) passed through to \code{lm()}, a formula expression as for other regression models. The response should be the error-prone version of the covariate.}
@@ -13,6 +20,8 @@ impPossum(imputation_formula, analysis_formula, data, B = 1, seed = NULL)
 \item{analysis_formula}{analysis model formula (or coercible to formula) passed through to \code{glm()}, a formula expression as for other regression models. The response should be the Poisson model outcome, and, if needed, the offset can be included in this formula using the \code{offset()} function.}
 
 \item{data}{dataset containing at least the variables included in \code{imputation_formula} and \code{analysis_formula}.}
+
+\item{adjMatrix}{(optional) adjacency matrix for observations in \code{data} to be passed through to \code{spaMM::fitme()}. If \code{adjMatrix} is not \code{NULL} (the default), then a spatial random effect should be included in \code{analysis_formula}.}
 
 \item{B}{desired number of imputations. Default is \code{B = 1}, which is single imputation.}
 
