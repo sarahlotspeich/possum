@@ -59,9 +59,6 @@ impPossum = function(imputation_formula, analysis_formula, data, adjMatrix = NUL
   ## Loop over the B iterations of imputation
   for (b in 1:B) {
     ### Draw imputed values from distribution (based on imputation model) for rows with missing values
-    imp_X = rnorm(n = (N - n), 
-                  mean = mu[-c(1:n)], 
-                  sd = sigma(imp_mod))
     data[-c(1:n), imp_var] = rnorm(n = (N - n), 
                                    mean = mu[-c(1:n)], 
                                    sd = sigma(imp_mod))
@@ -104,7 +101,6 @@ impPossum = function(imputation_formula, analysis_formula, data, adjMatrix = NUL
                      Standard.Error = sapply(X = 1:dim_beta, 
                                              FUN = function(c) sqrt(mean(imp_vars[, c]) + (B + 1) * mean((imp_params[, c] - mean(imp_params[, c])) ^ 2))))
   }
-  
   
   # Return results 
   return(res)
