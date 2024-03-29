@@ -2,6 +2,7 @@
 
 export(cv_smlePossum)
 export(impPossum)
+export(impPossum_data)
 export(mlePossum)
 export(smlePossum)
 importFrom(spaMM,fitme)
