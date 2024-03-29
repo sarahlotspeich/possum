@@ -5,7 +5,14 @@
 \title{Multiple imputation for Poisson regression problems with covariate measurement error
 This function returns the multiply imputed datasets}
 \usage{
-impPossum_data(imputation_formula, analysis_formula, data, B = 1, seed = NULL)
+impPossum_data(
+  imputation_formula,
+  analysis_formula,
+  data,
+  B = 1,
+  truncNorm = FALSE,
+  seed = NULL
+)
 }
 \arguments{
 \item{imputation_formula}{imputation model formula (or coercible to formula) passed through to \code{lm()}, a formula expression as for other regression models. The response should be the error-prone version of the covariate.}
@@ -15,6 +22,8 @@ impPossum_data(imputation_formula, analysis_formula, data, B = 1, seed = NULL)
 \item{data}{dataset containing at least the variables included in \code{imputation_formula} and \code{analysis_formula}.}
 
 \item{B}{desired number of imputations. Default is \code{B = 1}, which is single imputation.}
+
+\item{truncNorm}{(optional) distribution to be used to draw imputed values. If \code{FALSE} (the default), a normal distribution is used; if \code{TRUE}, a truncated normal distribution is used.}
 
 \item{seed}{(optional) random seed to use for reproducibility of random draws. Default is \code{seed = NULL}, which does not reset the random seed inside the function.}
 }

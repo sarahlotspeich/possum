@@ -11,6 +11,7 @@ impPossum(
   data,
   adjMatrix = NULL,
   B = 1,
+  truncNorm = FALSE,
   seed = NULL
 )
 }
@@ -24,6 +25,8 @@ impPossum(
 \item{adjMatrix}{(optional) adjacency matrix for observations in \code{data} to be passed through to \code{spaMM::fitme()}. If \code{adjMatrix} is not \code{NULL} (the default), then a spatial random effect should be included in \code{analysis_formula}.}
 
 \item{B}{desired number of imputations. Default is \code{B = 1}, which is single imputation.}
+
+\item{truncNorm}{(optional) distribution to be used to draw imputed values. If \code{FALSE} (the default), a normal distribution is used; if \code{TRUE}, a truncated normal distribution is used.}
 
 \item{seed}{(optional) random seed to use for reproducibility of random draws. Default is \code{seed = NULL}, which does not reset the random seed inside the function.}
 }

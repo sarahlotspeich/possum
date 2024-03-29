@@ -6,12 +6,14 @@
 #' @param data dataset containing at least the variables included in \code{imputation_formula} and \code{analysis_formula}.
 #' @param adjMatrix (optional) adjacency matrix for observations in \code{data} to be passed through to \code{spaMM::fitme()}. If \code{adjMatrix} is not \code{NULL} (the default), then a spatial random effect should be included in \code{analysis_formula}.
 #' @param B desired number of imputations. Default is \code{B = 1}, which is single imputation.
+#' @param truncNorm (optional) distribution to be used to draw imputed values. If \code{FALSE} (the default), a normal distribution is used; if \code{TRUE}, a truncated normal distribution is used.
 #' @param seed (optional) random seed to use for reproducibility of random draws. Default is \code{seed = NULL}, which does not reset the random seed inside the function. 
 #' @return dataframe with final coefficient and standard error estimates for the analysis model, pooled according to Rubin's rules.
 #' @export
 #' @importFrom spaMM fitme
+#' @importFrom truncnorm rtruncnorm
 
-impPossum = function(imputation_formula, analysis_formula, data, adjMatrix = NULL, B = 1, seed = NULL) {
+impPossum = function(imputation_formula, analysis_formula, data, adjMatrix = NULL, B = 1, truncNorm = FALSE, seed = NULL) {
   # Fit complete case model (Poisson)
   ## Based on user-supplied analysis_formula
   ## To get the dimension of the analysis model parameters 
@@ -58,10 +60,19 @@ impPossum = function(imputation_formula, analysis_formula, data, adjMatrix = NUL
   
   ## Loop over the B iterations of imputation
   for (b in 1:B) {
-    ### Draw imputed values from distribution (based on imputation model) for rows with missing values
-    data[-c(1:n), imp_var] = rnorm(n = (N - n), 
-                                   mean = mu[-c(1:n)], 
-                                   sd = sigma(imp_mod))
+    ### Draw imputed values from distribution for rows with missing values
+    #### (based on imputation model and truncNorm argument) 
+    if (truncNorm) {
+      data[-c(1:n), imp_var] = rtruncnorm(n = (N - n), 
+                                          a = 0, 
+                                          b = Inf, 
+                                          mean = mu[-c(1:n)], 
+                                          sd = sigma(imp_mod))
+    } else {
+      data[-c(1:n), imp_var] = rnorm(n = (N - n), 
+                                     mean = mu[-c(1:n)], 
+                                     sd = sigma(imp_mod))
+    }
     
     if (is.null(adjMatrix)) {
       ### Fit outcome model with imputed X (Poisson)
