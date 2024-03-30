@@ -45,24 +45,67 @@ impPossum = function(imputation_formula, analysis_formula, data, adjMatrix = NUL
   mu = as.vector(predict(object = imp_mod, 
                          newdata = data)) 
   
-  # Multiple imputation
-  ## Build matrix to hold coefficient estimates and variances from each imputation
-  imp_params = imp_vars = matrix(data = NA, 
-                                 nrow = B, 
-                                 ncol = dim_beta)
-  
-  ## If user specified random seed, reset
-  if (!is.null(seed)) {
-    set.seed(seed)
-  }
-  
-  ## Loop over the B iterations of imputation
-  for (b in 1:B) {
-    ### Draw imputed values from distribution for rows with missing values
-    #### (based on imputation model) 
-    data[-c(1:n), imp_var] = rnorm(n = (N - n), 
-                                   mean = mu[-c(1:n)], 
-                                   sd = sigma(imp_mod))
+  if (B > 0) {
+    # Stochastic imputation
+    ## Build matrix to hold coefficient estimates and variances from each imputation
+    imp_params = imp_vars = matrix(data = NA, 
+                                   nrow = B, 
+                                   ncol = dim_beta)
+    
+    ## If user specified random seed, reset
+    if (!is.null(seed)) {
+      set.seed(seed)
+    }
+    
+    ## Loop over the B iterations of imputation
+    for (b in 1:B) {
+      ### Draw imputed values from distribution for rows with missing values
+      #### (based on imputation model) 
+      data[-c(1:n), imp_var] = rnorm(n = (N - n), 
+                                     mean = mu[-c(1:n)], 
+                                     sd = sigma(imp_mod))
+      
+      if (is.null(adjMatrix)) {
+        ### Fit outcome model with imputed X (Poisson)
+        fit = glm(formula = analysis_formula, 
+                  family = poisson,
+                  data = data)
+        
+        ### Save parameters
+        imp_params[b, ] = coefficients(fit)
+        
+        ### Save standard errors
+        imp_vars[b, ] = diag(vcov(fit))
+      } else {
+        ### Fit outcome model with imputed X (Poisson)
+        fit = fitme(formula = analysis_formula, 
+                    family = poisson, 
+                    adjMatrix = adj_matrix,
+                    data = data)
+        
+        ### Save parameters
+        imp_params[b, ] = as.data.frame(summary(fit)["beta_table"])[, 1]
+        
+        ### Save standard errors
+        imp_vars[b, ] = as.data.frame(summary(fit)["beta_table"])[, 2] ^ 2
+      }
+    }
+    
+    # Save pooled parameter estimates
+    if (is.null(adjMatrix)) { 
+      res = data.frame(Coefficient = names(coefficients(fit)), 
+                       Estimate = colMeans(imp_params), 
+                       Standard.Error = sapply(X = 1:dim_beta, 
+                                               FUN = function(c) sqrt(mean(imp_vars[, c]) + (B + 1) * mean((imp_params[, c] - mean(imp_params[, c])) ^ 2))))
+    } else {
+      res = data.frame(Coefficient = rownames(as.data.frame(summary(fit)["beta_table"])), 
+                       Estimate = colMeans(imp_params), 
+                       Standard.Error = sapply(X = 1:dim_beta, 
+                                               FUN = function(c) sqrt(mean(imp_vars[, c]) + (B + 1) * mean((imp_params[, c] - mean(imp_params[, c])) ^ 2))))
+    }
+  } else {
+    # Deterministic imputation
+    data[-c(1:n), imp_var] = mu[-c(1:n)]
     
     if (is.null(adjMatrix)) {
       ### Fit outcome model with imputed X (Poisson)
@@ -71,36 +114,34 @@ impPossum = function(imputation_formula, analysis_formula, data, adjMatrix = NUL
                 data = data)
       
       ### Save parameters
-      imp_params[b, ] = coefficients(fit)
+      imp_params = coefficients(fit)
       
       ### Save standard errors
-      imp_vars[b, ] = diag(vcov(fit))
+      imp_vars = diag(vcov(fit))
     } else {
       ### Fit outcome model with imputed X (Poisson)
       fit = fitme(formula = analysis_formula, 
                   family = poisson, 
                   adjMatrix = adj_matrix,
                   data = data)
- 
+      
       ### Save parameters
-      imp_params[b, ] = as.data.frame(summary(fit)["beta_table"])[, 1]
+      imp_params = as.data.frame(summary(fit)["beta_table"])[, 1]
       
       ### Save standard errors
-      imp_vars[b, ] = as.data.frame(summary(fit)["beta_table"])[, 2] ^ 2
+      imp_vars = as.data.frame(summary(fit)["beta_table"])[, 2] ^ 2
     }
-  }
-  
-  # Save pooled parameter estimates
-  if (is.null(adjMatrix)) { 
-    res = data.frame(Coefficient = names(coefficients(fit)), 
-                     Estimate = colMeans(imp_params), 
-                     Standard.Error = sapply(X = 1:dim_beta, 
-                                             FUN = function(c) sqrt(mean(imp_vars[, c]) + (B + 1) * mean((imp_params[, c] - mean(imp_params[, c])) ^ 2))))
-  } else {
-    res = data.frame(Coefficient = rownames(as.data.frame(summary(fit)["beta_table"])), 
-                     Estimate = colMeans(imp_params), 
-                     Standard.Error = sapply(X = 1:dim_beta, 
-                                             FUN = function(c) sqrt(mean(imp_vars[, c]) + (B + 1) * mean((imp_params[, c] - mean(imp_params[, c])) ^ 2))))
+    
+    # Save parameter estimates
+    if (is.null(adjMatrix)) { 
+      res = data.frame(Coefficient = names(coefficients(fit)), 
+                       Estimate = imp_params, 
+                       Standard.Error = sqrt(imp_vars))
+    } else {
+      res = data.frame(Coefficient = rownames(as.data.frame(summary(fit)["beta_table"])), 
+                       Estimate = imp_params, 
+                       Standard.Error = sqrt(imp_vars))
+    }
   }
   
   # Return results 
