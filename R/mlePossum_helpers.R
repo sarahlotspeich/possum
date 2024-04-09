@@ -67,8 +67,8 @@ loglik_mat = function(beta_eta,
   pXgivXstarZ = expit_XgivXstarZ ^ complete_data[, X_name] * (1 - expit_XgivXstarZ) ^ (1 - complete_data[, X_name])
   if (noFN) {
     ## But if X* = 0, replace with point mass
-    pXgivXstarZ[complete_data[, Xstar_name] == 0 & complete_data[, X_name] == 0, ] = 1 ### P(X=0|X*=0) = 1
-    pXgivXstarZ[complete_data[, Xstar_name] == 0 & complete_data[, X_name] == 1, ] = 0 ### P(X=1|X*=0) = 0
+    pXgivXstarZ[complete_data[, Xstar_name] == 0 & complete_data[, X_name] == 0] = 1 ### P(X=0|X*=0) = 1
+    pXgivXstarZ[complete_data[, Xstar_name] == 0 & complete_data[, X_name] == 1] = 0 ### P(X=1|X*=0) = 0
   } 
 
   ## P(Y, X|X*, Z) OR P(Y,X|X*) 
