@@ -5,10 +5,11 @@
 #' @param analysis_formula analysis model formula (or coercible to formula), a formula expression as for other regression models. The response should be the Poisson model outcome, and, if needed, the offset can be provided as the \code{offset} argument.
 #' @param offset optional, variable name string for the analysis model offset. Default is \code{offset = NULL} for no offset. 
 #' @param data dataset containing at least the variables included in \code{error_formula} and \code{analysis_formula}.
+#' @param noFN logical, if \code{noFN = FALSE} (the default), then it is assumed that there can be both false positives and false negatives in the error-prone exposure. If \code{noFN = TRUE}, the error mechanism is restricted to only false positives. 
 #' @return dataframe with final coefficient and standard error estimates for the analysis model
 #' @export
 
-mlePossum = function(error_formula, analysis_formula, offset = NULL, data) {
+mlePossum = function(error_formula, analysis_formula, offset = NULL, data, noFN = FALSE) {
   ## Extract variable names from user-specified formulas 
   get_Y_name = as.character(as.formula(analysis_formula))[2]
   get_X_name = as.character(as.formula(error_formula))[2]
@@ -58,7 +59,8 @@ mlePossum = function(error_formula, analysis_formula, offset = NULL, data) {
                       Xstar_name = get_Xstar_name,
                       Q_name = "Q",
                       offset_name = offset,
-                      data = data)
+                      data = data,
+                      noFN = noFN)
   } else {
     optim_res = optim(fn = loglik_mat, 
                       par = cc_fit, 
@@ -69,7 +71,8 @@ mlePossum = function(error_formula, analysis_formula, offset = NULL, data) {
                       Xstar_name = get_Xstar_name,
                       offset_name = offset,
                       Q_name = "Q",
-                      data = data)
+                      data = data,
+                      noFN = noFN)
   }
   
   ## Prepare model output to be returned 

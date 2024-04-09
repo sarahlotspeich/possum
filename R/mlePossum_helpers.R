@@ -4,6 +4,7 @@ loglik_mat = function(beta_eta,
                       Q_name, 
                       offset_name = NULL,
                       data,
+                      noFN = FALSE,
                       verbose = FALSE) {
   #print(beta_eta)
   
@@ -57,12 +58,19 @@ loglik_mat = function(beta_eta,
   pYgivXZ = dpois(x = complete_data[, Y_name], lambda = lambdaY)
   
   if(!is.null(Z_name)){ ## P(X|X*,Z) from Bernoulli distribution
-    pXgivXstarZ = 1 / (1 + exp(-(beta_eta[4] + beta_eta[5] * complete_data[, Xstar_name] + beta_eta[6] * complete_data[, Z_name]))) ^ complete_data[, X_name] * 
-    (1 - 1 / (1 + exp(-(beta_eta[4] + beta_eta[5] * complete_data[, Xstar_name] + beta_eta[6] * complete_data[, Z_name])))) ^ (1 - complete_data[, X_name]) 
+    expit_XgivXstarZ = 1 / (1 + exp(-(beta_eta[4] + beta_eta[5] * complete_data[, Xstar_name] + beta_eta[6] * complete_data[, Z_name])))
   } else{ ## P(X|X*) from Bernoulli distribution
-    pXgivXstarZ = 1 / (1 + exp(-(beta_eta[3] + beta_eta[4] * complete_data[, Xstar_name]))) ^ complete_data[, X_name] * 
-    (1 - 1 / (1 + exp(-(beta_eta[3] + beta_eta[4] * complete_data[, Xstar_name])))) ^ (1 - complete_data[, X_name]) 
+    expit_XgivXstarZ = 1 / (1 + exp(-(beta_eta[3] + beta_eta[4] * complete_data[, Xstar_name])))
   }
+  
+  ## P(X|X*,Z) from Bernoulli distribution
+  pXgivXstarZ = expit_XgivXstarZ ^ complete_data[, X_name] * (1 - expit_XgivXstarZ) ^ (1 - complete_data[, X_name])
+  if (noFN) {
+    ## But if X* = 0, replace with point mass
+    pXgivXstarZ[complete_data[, Xstar_name] == 0 & complete_data[, X_name] == 0, ] = 1 ### P(X=0|X*=0) = 1
+    pXgivXstarZ[complete_data[, Xstar_name] == 0 & complete_data[, X_name] == 1, ] = 0 ### P(X=1|X*=0) = 0
+  } 
+
   ## P(Y, X|X*, Z) OR P(Y,X|X*) 
   pYXgivXstarZ = pYgivXZ * pXgivXstarZ
   
