@@ -22,6 +22,11 @@ loglik_mat = function(beta_eta,
         cbind(id = (n+1):N, data[-c(1:n), Y_name], X_name = 1, data[-c(1:n), c(Z_name, Xstar_name, offset_name)])
       )
       colnames(unqueried_data) = c("id", Y_name, X_name, Z_name, Xstar_name, offset_name)
+      if (noFN) {
+        ## If false negatives aren't possible, delete rows from the unqueried complete data
+        ### where X = 1 and X* = 0 (false negative)
+        unqueried_data = unqueried_data[!(unqueried_data[, X_name] == 1 & unqueried_data[, Xstar_name] == 0), ]
+      }
       complete_data = data.matrix(rbind(queried_data, unqueried_data))
     } else {
       complete_data = cbind(id = 1:n, data[1:n, c(Y_name, X_name, Z_name, Xstar_name, offset_name)])
@@ -34,6 +39,11 @@ loglik_mat = function(beta_eta,
         cbind(id = (n+1):N, data[-c(1:n), Y_name], X_name = 1, data[-c(1:n), c(Xstar_name, offset_name)])
       )
       colnames(unqueried_data) = c("id", Y_name, X_name, Xstar_name, offset_name)
+      if (noFN) {
+        ## If false negatives aren't possible, delete rows from the unqueried complete data
+        ### where X = 1 and X* = 0 (false negative)
+        unqueried_data = unqueried_data[!(unqueried_data[, X_name] == 1 & unqueried_data[, Xstar_name] == 0), ]
+      }
       complete_data = data.matrix(rbind(queried_data, unqueried_data))
     } else {
       complete_data = cbind(id = 1:n, data[1:n, c(Y_name, X_name, Xstar_name, offset_name)])
@@ -68,8 +78,8 @@ loglik_mat = function(beta_eta,
     pXgivXstarZ = expit_XgivXstarZ ^ complete_data[, X_name] * (1 - expit_XgivXstarZ) ^ (1 - complete_data[, X_name])
 
     ## But if X* = 0, replace with point mass
-    pXgivXstarZ[complete_data[, Xstar_name] == 0 & complete_data[, X_name] == 0] = 1 ### P(X=0|X*=0) = 1
-    pXgivXstarZ[complete_data[, Xstar_name] == 0 & complete_data[, X_name] == 1] = 0 ### P(X=1|X*=0) = 0
+    # pXgivXstarZ[complete_data[, Xstar_name] == 0 & complete_data[, X_name] == 0] = 1 ### P(X=0|X*=0) = 1
+    # pXgivXstarZ[complete_data[, Xstar_name] == 0 & complete_data[, X_name] == 1] = 0 ### P(X=1|X*=0) = 0
   } else {
     if(!is.null(Z_name)){ ## P(X|X*,Z) from Bernoulli distribution
       expit_XgivXstarZ = 1 / (1 + exp(-(beta_eta[4] + beta_eta[5] * complete_data[, Xstar_name] + beta_eta[6] * complete_data[, Z_name])))
