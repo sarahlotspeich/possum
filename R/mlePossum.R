@@ -84,19 +84,22 @@ mlePossum = function(error_formula, analysis_formula, offset = NULL, data, noFN 
                                 nrow = num_analysis_covar,
                                 ncol = num_analysis_covar)
                        })
-
+  len_optim <- length(optim_res$par)
+  error_start <- num_analysis_covar + 1
   if (optim_res$convergence == 0) {
     res = data.frame(Est = optim_res$par[1:num_analysis_covar],
                      SE = sqrt(diag(cov_theta)))
-    rownames(res) = c("(Intercept)", analysis_covar)
+    error_coefs <- optim_res$par[error_start:len_optim]
   } else {
     res = data.frame(Est = rep(NA, num_analysis_covar),
                      SE = rep(NA, num_analysis_covar))
-    rownames(res) = c("(Intercept)", analysis_covar)
+    error_coefs <- rep(NA, len_optim - num_analysis_covar)
   }
+  rownames(res) = c("(Intercept)", analysis_covar)
+  rownames(error_coefs) <- c("(Intercept)", error_covar)
 
   ## Return model output
   return(list(coefficients = res,
-              #misclass_coefficients = misclass_res,
+              misclass_coefficients = error_coefs,
               convergence = optim_res$convergence))
 }
