@@ -39,11 +39,26 @@ mlePossum = function(error_formula, analysis_formula, offset = NULL, data, noFN 
                  data = data,
                  family = poisson)$coefficients
   }
-  ### P(X|X*,Z)
-  cc_fit = c(cc_fit,
-             glm(formula = as.formula(error_formula),
-                 data = data,
-                 family = binomial)$coefficients)
+
+  ## If false negatives aren't possible, replace user-specified error_formula
+  if (noFN) {
+    if (length(get_Z_name) > 0) {
+      error_formula <- as.character(paste0(get_X_name, " ~ ", paste0(get_Z_name, collapse = " + ")) )
+    } else {
+      error_formula <- as.character(paste0(get_X_name, " ~ 1") )
+    }
+    ### P(X|X*,Z)
+    cc_fit = c(cc_fit,
+               glm(formula = as.formula(error_formula),
+                   data = data[data[, get_Xstar_name] == 1, ],
+                   family = binomial)$coefficients)
+  } else {
+    ### P(X|X*,Z)
+    cc_fit = c(cc_fit,
+               glm(formula = as.formula(error_formula),
+                   data = data,
+                   family = binomial)$coefficients)
+  }
 
   ## Add queried/non-missing data indicator
   data[, "Q"] = as.numeric(!is.na(data[, get_X_name]))
