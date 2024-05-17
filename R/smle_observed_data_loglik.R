@@ -18,7 +18,7 @@
 #' @param p B-spline coefficients for the approximated covariate error model (a matrix)
 #' @return Scalar value of the function
 
-smle_observed_data_loglik = function(N, n, Y = NULL, offset = NULL, X_unval = NULL, X_val = NULL, Z = NULL, Bspline = NULL, comp_dat_all, theta_pred, gamma_pred, theta, gamma, p) {
+smle_observed_data_loglik = function(N, n, Y = NULL, offset = NULL, X_unval = NULL, X_val = NULL, Z = NULL, Bspline = NULL, comp_dat_all, theta_pred, theta, p) {
   # Determine error setting -----------------------------------------
   ## If unvalidated variable was left blank, assume error-free ------
   errorsX = !is.null(X_unval)

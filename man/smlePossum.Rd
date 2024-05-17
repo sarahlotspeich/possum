@@ -37,7 +37,7 @@ smlePossum(
 
 \item{Bspline}{Vector of column names containing the B-spline basis functions.}
 
-\item{data}{A dataframe with one row per subject containing columns: \code{Y_unval}, \code{Y}, \code{X_unval}, \code{X_val}, \code{Z}, \code{Validated}, and \code{Bspline}.}
+\item{data}{A dataframe with one row per subject containing columns: \code{Y}, \code{X_unval}, \code{X_val}, \code{Z}, \code{Validated}, and \code{Bspline}.}
 
 \item{theta_pred}{Vector of columns in \code{data} that pertain to the covariates in the analysis model. The default assumes main effects of \code{X_val} and \code{Z} only.}
 

@@ -50,21 +50,21 @@ cv_smlePossum = function(fold, Y, offset = NULL, X_unval, X_val, Z = NULL, Valid
     if (train_fit$converged) {
       train_theta = train_fit$coeff$coeff
       train_p = train_fit$Bspline_coeff
-      train_x = data.frame(train[train[, Validated] == 1, X_val])
+      train_x = unique(data.frame(train[train[, Validated] == 1, X_val]))
       train_x = data.frame(train_x[order(train_x[, 1]), ])
       colnames(train_x) = X_val
       train_x = cbind(k = 1:nrow(train_x), train_x)
       train_p = merge(train_x, train_p)
 
       test = data[which(data[, fold] != f), ]
-      test_x = data.frame(test[test[, Validated] == 1, X_val])
+      test_x = unique(data.frame(test[test[, Validated] == 1, X_val]))
       test_x = data.frame(test_x[order(test_x[, 1]), ])
       colnames(test_x) = X_val
       test_x = cbind(k_ = 1:nrow(test_x), test_x)
       test_p = matrix(data = NA, nrow = nrow(test_x), ncol = length(Bspline))
 
-      for (i in 1:nrow(test_x)) {
-        x_ = test_x[i, X_val]
+      for (j in 1:nrow(test_x)) {
+        x_ = test_x[j, X_val]
         bf = suppressWarnings(expr = max(which(train_x[, X_val] <= x_)))
         af = suppressWarnings(expr = min(which(train_x[, X_val] >= x_)))
         if (bf == -Inf) { bf = af }
@@ -79,9 +79,9 @@ cv_smlePossum = function(fold, Y, offset = NULL, X_unval, X_val, Z = NULL, Valid
         p1 = train_p[af, -c(1:(1 + length(X_val)))]
 
         if (x1 == x0) {
-          test_p[i, ] = unlist(p0)
+          test_p[j, ] = unlist(p0)
         } else {
-          test_p[i, ] = unlist((p0 * (x1 - x_) + p1 * (x_ - x0)) / (x1 - x0))
+          test_p[j, ] = unlist((p0 * (x1 - x_) + p1 * (x_ - x0)) / (x1 - x0))
         }
       }
 
@@ -90,13 +90,19 @@ cv_smlePossum = function(fold, Y, offset = NULL, X_unval, X_val, Z = NULL, Valid
       denom[denom == 0] = 1 # Avoid NaN error due to dividing by 0
       re_test_p = t(t(test_p) / denom)
 
-      # Construct complete dataset
+      # Construct complete dataset  -----------------------------------
+      N = nrow(test) ## total sample size (Phase I)
+      n = sum(test[, Validated]) ## validation study sample size (Phase II)
+      
+      # Reorder so that the n validated subjects are first ------------
+      test = test[order(as.numeric(test[, Validated]), decreasing = TRUE), ]
+      
       # Save distinct X -------------------------------------------------
       x_obs = data.frame(unique(test[1:n, c(X_val)]))
       x_obs = data.frame(x_obs[order(x_obs[, 1]), ])
       m = nrow(x_obs)
       x_obs_stacked = do.call(what = rbind,
-                              args = replicate(n = (nrow(test) - sum(test[, Validated])),
+                              args = replicate(n = (N - n),
                                                expr = x_obs,
                                                simplify = FALSE)
       )
@@ -131,7 +137,7 @@ cv_smlePossum = function(fold, Y, offset = NULL, X_unval, X_val, Z = NULL, Valid
                                        X_val = X_val,
                                        Z = Z,
                                        Bspline = Bspline,
-                                       comp_dat_all = comp_dat_all, ## update
+                                       comp_dat_all = cd, ## update
                                        theta_pred = theta_pred,
                                        theta = train_theta,
                                        p = re_test_p)

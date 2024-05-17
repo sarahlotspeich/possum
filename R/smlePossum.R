@@ -8,7 +8,7 @@
 #' @param Z (Optional) Column name(s) with additional error-free covariates.
 #' @param Validated Column name with the validation indicator. The validation indicator can be defined as \code{Validated = 1} or \code{TRUE} if the subject was validated and \code{Validated = 0} or \code{FALSE} otherwise.
 #' @param Bspline Vector of column names containing the B-spline basis functions.
-#' @param data A dataframe with one row per subject containing columns: \code{Y_unval}, \code{Y}, \code{X_unval}, \code{X_val}, \code{Z}, \code{Validated}, and \code{Bspline}.
+#' @param data A dataframe with one row per subject containing columns: \code{Y}, \code{X_unval}, \code{X_val}, \code{Z}, \code{Validated}, and \code{Bspline}.
 #' @param theta_pred Vector of columns in \code{data} that pertain to the covariates in the analysis model. The default assumes main effects of \code{X_val} and \code{Z} only. 
 #' @param initial_lr_params Initial values for parametric model parameters. Choices include (1) \code{"Zero"} (non-informative starting values) or (2) \code{"Complete-data"} (estimated based on validated subjects only)
 #' @param h_N_scale Size of the perturbation used in estimating the standard errors via profile likelihood. If none is supplied, default is \code{h_N_scale = 1}.
@@ -134,13 +134,11 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
     }
   }
 
+  # Set parameters for algorithm convergence --------------------------
   CONVERGED = FALSE
   CONVERGED_MSG = "Unknown"
   it = 1
-
-  # pre-allocate memory for loop variables
-  # mus_theta = vector("numeric", nrow(theta_design_mat) * ncol(prev_theta))
-
+  
   # Estimate theta using EM -------------------------------------------
   while(it <= MAX_ITER & !CONVERGED) {
     # E Step ----------------------------------------------------------
@@ -318,9 +316,8 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
     }
 
     ## Calculate pl(theta) -------------------------------------------------
-    od_loglik_theta <- observed_data_loglik(N = N,
+    od_loglik_theta = smle_observed_data_loglik(N = N,
       n = n,
-      Y_unval = Y_unval,
       Y = Y,
       X_unval = X_unval,
       X_val = X_val,
@@ -328,9 +325,7 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
       Bspline = Bspline,
       comp_dat_all = comp_dat_all,
       theta_pred = theta_pred,
-      gamma_pred = gamma_pred,
       theta = new_theta,
-      gamma = new_gamma,
       p = new_p)
 
     I_theta <- matrix(od_loglik_theta, nrow = nrow(new_theta), ncol = nrow(new_theta))
@@ -341,7 +336,6 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
       h_N = h_N,
       n = n,
       N = N,
-      Y_unval = Y_unval,
       Y = Y,
       X_unval = X_unval,
       X_val = X_val,
@@ -349,8 +343,6 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
       Bspline = Bspline,
       comp_dat_all = comp_dat_all,
       theta_pred = theta_pred,
-      gamma_pred = gamma_pred,
-      gamma0 = new_gamma,
       p0 = new_p,
       p_val_num = p_val_num,
       TOL = TOL,
@@ -381,7 +373,6 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
         h_N = h_N,
         n = n,
         N = N,
-        Y_unval = Y_unval,
         Y = Y,
         X_unval = X_unval,
         X_val = X_val,
@@ -389,8 +380,6 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
         Bspline = Bspline,
         comp_dat_all = comp_dat_all,
         theta_pred = theta_pred,
-        gamma_pred = gamma_pred,
-        gamma0 = new_gamma,
         p0 = new_p,
         p_val_num = p_val_num,
         MAX_ITER = MAX_ITER,
@@ -438,7 +427,6 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
     }
 
     return(list(coeff = data.frame(coeff = new_theta, se = se_theta),
-                outcome_err_coeff = data.frame(coeff = new_gamma, se = NA),
                 Bspline_coeff = cbind(k = comp_dat_val[, "k"], new_p),
                 vcov = cov_theta,
                 converged = CONVERGED,

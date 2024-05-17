@@ -15,9 +15,7 @@ smle_observed_data_loglik(
   Bspline = NULL,
   comp_dat_all,
   theta_pred,
-  gamma_pred,
   theta,
-  gamma,
   p
 )
 }
