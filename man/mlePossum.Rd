@@ -5,7 +5,7 @@
 \title{Maximum likelihood estimation for Poisson regression problems with covariate misclassification
 This function returns the maximum likelihood estimates (MLEs) for the Poisson regression model with covariate misclassification from Mullan et al. (2024+)}
 \usage{
-mlePossum(error_formula, analysis_formula, offset = NULL, data)
+mlePossum(error_formula, analysis_formula, offset = NULL, data, noFN = FALSE)
 }
 \arguments{
 \item{error_formula}{misclassification model formula (or coercible to formula), a formula expression as for other regression models. The response should be the error-free version of the error-prone of the covariate.}
@@ -15,6 +15,8 @@ mlePossum(error_formula, analysis_formula, offset = NULL, data)
 \item{offset}{optional, variable name string for the analysis model offset. Default is \code{offset = NULL} for no offset.}
 
 \item{data}{dataset containing at least the variables included in \code{error_formula} and \code{analysis_formula}.}
+
+\item{noFN}{logical, if \code{noFN = FALSE} (the default), then it is assumed that there can be both false positives and false negatives in the error-prone exposure. If \code{noFN = TRUE}, the error mechanism is restricted to only false positives.}
 }
 \value{
 dataframe with final coefficient and standard error estimates for the analysis model

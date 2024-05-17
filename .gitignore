@@ -8,3 +8,8 @@ R/.DS_Store
 ~$hex.pptx
 
 hex.pptx
+.Rproj.user
+
+possum.Rproj
+
+.Rbuildignore
