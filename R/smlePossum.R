@@ -149,7 +149,8 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
     if (!is.null(offset)) {
        lambda = comp_dat_unval[, offset] * lambda
     }
-    pY_X = dpois(x = comp_dat_unval[, Y], lambda = lambda) #lambda ^ comp_dat_unval[, Y] * exp(- lambda) / factorial(x = comp_dat_unval[, Y])
+    pY_X = dpois(x = comp_dat_unval[, Y], 
+                 lambda = lambda)
     ### -------------------------------------------------------- P(Y|X)
     ###################################################################
     ### P(X|X*) -------------------------------------------------------
@@ -328,7 +329,9 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
       theta = new_theta,
       p = new_p)
 
-    I_theta <- matrix(od_loglik_theta, nrow = nrow(new_theta), ncol = nrow(new_theta))
+    I_theta <- matrix(od_loglik_theta, 
+                      nrow = nrow(new_theta), 
+                      ncol = nrow(new_theta))
 
     single_pert_theta <- sapply(X = seq(1, ncol(I_theta)),
       FUN = pl_theta,
@@ -337,6 +340,7 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
       n = n,
       N = N,
       Y = Y,
+      offset = offset, 
       X_unval = X_unval,
       X_val = X_val,
       Z = Z,
@@ -348,13 +352,10 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
       TOL = TOL,
       MAX_ITER = MAX_ITER)
 
-    if (any(is.na(single_pert_theta)))
-    {
+    if (any(is.na(single_pert_theta))) {
       I_theta <- matrix(NA, nrow = nrow(new_theta), ncol = nrow(new_theta))
       SE_CONVERGED <- FALSE
-    }
-    else
-    {
+    } else {
       spt_wide <- matrix(rep(c(single_pert_theta), times = ncol(I_theta)),
        ncol = ncol(I_theta),
        byrow = FALSE)
@@ -363,8 +364,7 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
       SE_CONVERGED <- TRUE
     }
 
-    for (c in 1:ncol(I_theta))
-    {
+    for (c in 1:ncol(I_theta)) {
       pert_theta <- new_theta
       pert_theta[c] <- pert_theta[c] + h_N
       double_pert_theta <- sapply(X = seq(c, ncol(I_theta)),
@@ -374,6 +374,7 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
         n = n,
         N = N,
         Y = Y,
+        offset = offset,
         X_unval = X_unval,
         X_val = X_val,
         Z = Z,
@@ -387,47 +388,30 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
 
       dpt <- matrix(0, nrow = nrow(I_theta), ncol = ncol(I_theta))
       dpt[c,c] <- double_pert_theta[1] #Put double on the diagonal
-      if(c < ncol(I_theta))
-      {
+      if(c < ncol(I_theta)) {
         ## And fill the others in on the cth row/ column
         dpt[c, -(1:c)] <- dpt[-(1:c), c] <- double_pert_theta[-1]
       }
 
       I_theta <- I_theta + dpt
-      # print(I_theta)
     }
 
     I_theta <- h_N ^ (- 2) * I_theta
 
     cov_theta <- tryCatch(expr = - solve(I_theta),
-      error = function(err)
-      {
-        matrix(NA, nrow = nrow(I_theta), ncol = ncol(I_theta))
-      }
-
+      error = function(err) {
+        matrix(NA, nrow = nrow(I_theta), ncol = ncol(I_theta)) }
       )
     # ------------------------- Estimate Cov(theta) using profile likelihood
-    # if(any(diag(cov_theta) < 0)) {
-    #   warning("Negative variance estimate. Increase the h_N_scale parameter and repeat variance estimation.")
-    #   SE_CONVERGED <- FALSE
-    # }
 
     se_theta <- tryCatch(expr = sqrt(diag(cov_theta)),
-      warning = function(w)
-      {
-        matrix(NA, nrow = nrow(prev_theta))
-        })
-    if (any(is.na(se_theta)))
-    {
-      SE_CONVERGED <- FALSE
-    }
-    else
-    {
-      TRUE
-    }
+      warning = function(w) {
+        matrix(NA, nrow = nrow(prev_theta))}
+      )
+    SE_CONVERGED <- any(is.na(se_theta))
 
     return(list(coeff = data.frame(coeff = new_theta, se = se_theta),
-                Bspline_coeff = cbind(k = comp_dat_val[, "k"], new_p),
+                Bspline_coeff = cbind(X = x_obs, new_p),
                 vcov = cov_theta,
                 converged = CONVERGED,
                 se_converged = SE_CONVERGED,

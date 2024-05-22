@@ -7,7 +7,7 @@
 #' @param N Phase I sample size
 #' @param n Phase II sample size
 #' @param Y Column name with the outcome
-#' @param offset (Optional) Column name with the offset for \code{Y}. Default is \code{offset = 1}, no offse
+#' @param offset (Optional) Column name with the offset for \code{Y}. Default is \code{offset = 1}, no offset
 #' @param X_unval Column(s) with the unvalidated covariates 
 #' @param X_val Column(s) with the validated covariates 
 #' @param Z (Optional) Column(s) with additional error-free covariates 
@@ -33,7 +33,7 @@ smle_observed_data_loglik = function(N, n, Y = NULL, offset = NULL, X_unval = NU
   #################################################################################
   ## Sum over log[P_theta(Yi|Xi)] -------------------------------------------------
   lambda = comp_dat_all[c(1:n), offset] * exp(as.numeric((cbind(int = 1, comp_dat_all[c(1:n), theta_pred]) %*% theta)))
-  pY_X = lambda ^ as.vector(comp_dat_all[c(1:n), Y]) * exp(- lambda) / as.vector(factorial(comp_dat_all[c(1:n), Y]))
+  pY_X = dpois(x = comp_dat_all[-c(1:n), Y], lambda = lambda) 
   return_loglik = sum(log(pY_X))
   ## ------------------------------------------------- Sum over log[P_theta(Yi|Xi)]
   #################################################################################
@@ -51,11 +51,13 @@ smle_observed_data_loglik = function(N, n, Y = NULL, offset = NULL, X_unval = NU
   # For unvalidated subjects ------------------------------------------------------
   ## Calculate P_theta(y|x) for all (y,xk) ----------------------------------------
   if (!is.null(offset)) {
-    lambda = comp_dat_all[-c(1:n), offset] * exp(as.numeric((cbind(int = 1, comp_dat_all[-c(1:n), theta_pred]) %*% theta)))
+    lambda = comp_dat_all[-c(1:n), offset] * 
+      exp(as.numeric((cbind(int = 1, comp_dat_all[-c(1:n), theta_pred]) %*% theta)))
   } else {
     lambda = exp(as.numeric((cbind(int = 1, comp_dat_all[-c(1:n), theta_pred]) %*% theta)))
   }
-  pY_X = lambda ^ as.vector(comp_dat_all[-c(1:n), Y]) * exp(- lambda) / as.vector(factorial(comp_dat_all[-c(1:n), Y]))
+  pY_X = dpois(x = comp_dat_all[-c(1:n), Y], 
+               lambda = lambda) 
   ## ---------------------------------------- Calculate P_theta(y|x) for all (y,xk)
   ################################################################################
   if (errorsX) {
@@ -68,7 +70,7 @@ smle_observed_data_loglik = function(N, n, Y = NULL, offset = NULL, X_unval = NU
   ################################################################################
   ## Calculate sum of P(y|xk) x Bj(X*) x p_kj ------------------------------------
   if (errorsX) {
-    person_sum = rowsum(x = c(pY_X * pX) * comp_dat_all[-c(1:n), Bspline], 
+    person_sum = rowsum(x = pY_X * pX * comp_dat_all[-c(1:n), Bspline], 
                         group = rep(seq(1, (N - n)), times = m), 
                         reorder = FALSE)
   }

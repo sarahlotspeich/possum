@@ -9,8 +9,9 @@
 #' @param N Phase I sample size
 #' @param n Phase II sample size
 #' @param Y Column with the validated outcome (can be name or numeric index)
+#' @param offset (Optional) Column name with the offset for \code{Y}. Default is \code{offset = 1}, no offset
 #' @param X_unval Column(s) with the unvalidated predictors (can be name or numeric index)
-#' @param X Column(s) with the validated predictors (can be name or numeric index)
+#' @param X_val Column(s) with the validated predictors (can be name or numeric index)
 #' @param Z (Optional) Column(s) with additional error-free covariates (can be name or numeric index)
 #' @param Bspline Vector of columns containing the B-spline basis functions (can be name or numeric index)
 #' @param comp_dat_all Augmented dataset containing rows for each combination of unvalidated subjects' data with values from Phase II (a matrix)
@@ -22,7 +23,7 @@
 #' @return Profile likelihood for `theta` after perturbing element `k` by `h_N`.
 #' @noRd
 
-pl_theta <- function(k, theta, h_N, n, N, Y, X_unval, X, Z, Bspline, comp_dat_all,
+pl_theta <- function(k, theta, h_N, n, N, Y, offset, X_unval, X_val, Z, Bspline, comp_dat_all,
                         theta_pred, p0 = NULL, p_val_num = NULL, TOL, MAX_ITER) {
   pert <- theta
   pert[k] <- pert[k] + h_N
@@ -30,8 +31,9 @@ pl_theta <- function(k, theta, h_N, n, N, Y, X_unval, X, Z, Bspline, comp_dat_al
                            n = n,
                            N = N,
                            Y = Y,
+                           offset = offset,
                            X_unval = X_unval,
-                           X = X,
+                           X_val = X_val,
                            Z = Z,
                            Bspline = Bspline,
                            comp_dat_all = comp_dat_all,
@@ -41,11 +43,12 @@ pl_theta <- function(k, theta, h_N, n, N, Y, X_unval, X, Z, Bspline, comp_dat_al
                            TOL = TOL,
                            MAX_ITER = MAX_ITER)
   if(pl_params$converged) {
-    od_loglik_pert <- observed_data_loglik(N = N,
+    od_loglik_pert <- smle_observed_data_loglik(N = N,
                                            n = n,
                                            Y = Y,
+                                           offset = offset,
                                            X_unval = X_unval,
-                                           X = X,
+                                           X_val = X_val,
                                            Z = Z,
                                            Bspline = Bspline,
                                            comp_dat_all = comp_dat_all,

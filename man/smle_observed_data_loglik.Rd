@@ -26,7 +26,7 @@ smle_observed_data_loglik(
 
 \item{Y}{Column name with the outcome}
 
-\item{offset}{(Optional) Column name with the offset for \code{Y}. Default is \code{offset = 1}, no offse}
+\item{offset}{(Optional) Column name with the offset for \code{Y}. Default is \code{offset = 1}, no offset}
 
 \item{X_unval}{Column(s) with the unvalidated covariates}
 
