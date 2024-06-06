@@ -4,8 +4,6 @@
 #' for a given dataset and parameter values `theta` and `p`.
 #
 #'
-#' @param N Phase I sample size
-#' @param n Phase II sample size
 #' @param Y Column name with the outcome
 #' @param offset (Optional) Column name with the offset for \code{Y}. Default is \code{offset = 1}, no offset
 #' @param X_unval Column(s) with the unvalidated covariates 
@@ -19,7 +17,7 @@
 #' @param p B-spline coefficients for the approximated covariate error model (a matrix)
 #' @return Scalar value of the function
 
-smle_observed_data_loglik = function(N, n, Y = NULL, offset = NULL, X_unval = NULL, X_val = NULL, Z = NULL, Bspline = NULL, comp_dat_val, comp_dat_unval, theta_pred, theta, p) {
+smle_observed_data_loglik = function(Y = NULL, offset = NULL, X_unval = NULL, X_val = NULL, Z = NULL, Bspline = NULL, comp_dat_val, comp_dat_unval, theta_pred, theta, p) {
   # Determine error setting -----------------------------------------
   ## If unvalidated variable was left blank, assume error-free ------
   errorsX = !is.null(X_unval)

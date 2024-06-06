@@ -5,8 +5,6 @@
 \title{Observed-data log-likelihood for the sieve maximum likelihood estimator (SMLE)}
 \usage{
 smle_observed_data_loglik(
-  N,
-  n,
   Y = NULL,
   offset = NULL,
   X_unval = NULL,
@@ -21,10 +19,6 @@ smle_observed_data_loglik(
 )
 }
 \arguments{
-\item{N}{Phase I sample size}
-
-\item{n}{Phase II sample size}
-
 \item{Y}{Column name with the outcome}
 
 \item{offset}{(Optional) Column name with the offset for \code{Y}. Default is \code{offset = 1}, no offset}
