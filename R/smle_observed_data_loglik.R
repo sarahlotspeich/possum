@@ -72,7 +72,7 @@ smle_observed_data_loglik = function(Y = NULL, offset = NULL, X_unval = NULL, X_
   ## Calculate sum of P(y|xk) x Bj(X*) x p_kj ------------------------------------
   if (errorsX) {
     person_sum = rowsum(x = pY_X * pX * comp_dat_unval[, Bspline], 
-                        group = rep(seq(1, (N - n)), times = m), 
+                        group = rep(seq(1, nrow(comp_dat_unval)), times = m), 
                         reorder = FALSE)
   }
   person_sum = rowSums(person_sum)
