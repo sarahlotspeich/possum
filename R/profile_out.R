@@ -6,15 +6,13 @@
 #' This function is used by `pl_theta()`.
 #
 #' @param theta Parameters for the analysis model (a column vector)
-#' @param N Phase I sample size
-#' @param n Phase II sample size
 #' @param Y Column with the validated outcome (can be name or numeric index)
 #' @param offset (Optional) Column name with the offset for \code{Y}. Default is \code{offset = 1}, no offset
 #' @param X_unval Column(s) with the unvalidated predictors (can be name or numeric index)
 #' @param X_val Column(s) with the validated predictors (can be name or numeric index)
 #' @param Z (Optional) Column(s) with additional error-free covariates (can be name or numeric index)
 #' @param Bspline Vector of columns containing the B-spline basis functions (can be name or numeric index)
-#' @param comp_dat_all Augmented dataset containing rows for each combination of unvalidated subjects' data with values from Phase II (a matrix)
+#' @param comp_dat_unval Augmented dataset containing rows for each combination of unvalidated subjects' data with values from Phase II (a matrix)
 #' @param theta_pred Vector of columns in \code{data} that pertain to the predictors in the analysis model.
 #' @param p0 Starting values for `p`, the B-spline coefficients for the approximated covariate error model (a matrix)
 #' @param p_val_num Contributions of validated subjects to the numerator for `p`, which are fixed (a matrix)
@@ -28,28 +26,24 @@
 #'
 #' @noRd
 
-profile_out <- function(theta, n, N, Y = NULL, offset = NULL, X_unval = NULL, X_val = NULL, Z = NULL, Bspline = NULL,
-                           comp_dat_all, theta_pred, p0, p_val_num, TOL, MAX_ITER) {
+profile_out <- function(theta, Y = NULL, offset = NULL, X_unval = NULL, X_val = NULL, Z = NULL, Bspline = NULL,
+                           comp_dat_unval, theta_pred, p0, p_val_num, TOL, MAX_ITER) {
   sn <- ncol(p0)
   m <- nrow(p0)
   prev_p <- p0
   
   # Convert to matrices
   theta_design_mat <- as.matrix(cbind(int = 1,
-                                      comp_dat_all[-c(1:n), theta_pred]))
-  comp_dat_all <- as.matrix(comp_dat_all)
+                                      comp_dat_unval[, theta_pred]))
 
-  # Split complete data for unvalidated data
-  comp_dat_unval <- comp_dat_all[-c(1:n), ]
-  
   # For the E-step, save static P(Y|X) for unvalidated --------------
   ### P(Y|X) --------------------------------------------------------
   mu_theta = as.numeric((theta_design_mat %*% theta))
   lambda = exp(mu_theta)
   if (!is.null(offset)) {
-    lambda = comp_dat_all[-c(1:n), offset] * lambda
+    lambda = comp_dat_unval[, offset] * lambda
   }
-  pY_X = dpois(x = comp_dat_all[-c(1:n), Y], lambda = lambda) 
+  pY_X = dpois(x = comp_dat_unval[, Y], lambda = lambda) 
   ### -------------------------------------------------------- P(Y|X)
 
   # Set parameters for algorithm convergence --------------------------
