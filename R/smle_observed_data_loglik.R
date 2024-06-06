@@ -12,13 +12,14 @@
 #' @param X_val Column(s) with the validated covariates 
 #' @param Z (Optional) Column(s) with additional error-free covariates 
 #' @param Bspline Vector of columns containing the B-spline basis functions 
-#' @param comp_dat_all Augmented dataset containing rows for each combination of unvalidated subjects' data with values from Phase II (a matrix)
+#' @param comp_dat_val Dataset containing rows for validated subjects' data (a matrix)
+#' @param comp_dat_unval Augmented dataset containing rows for each combination of unvalidated subjects' data with values from Phase II (a matrix)
 #' @param theta_pred Vector of columns in \code{data} that pertain to the covariates in the analysis model.
 #' @param theta Parameters for the analysis model (a column vector)
 #' @param p B-spline coefficients for the approximated covariate error model (a matrix)
 #' @return Scalar value of the function
 
-smle_observed_data_loglik = function(N, n, Y = NULL, offset = NULL, X_unval = NULL, X_val = NULL, Z = NULL, Bspline = NULL, comp_dat_all, theta_pred, theta, p) {
+smle_observed_data_loglik = function(N, n, Y = NULL, offset = NULL, X_unval = NULL, X_val = NULL, Z = NULL, Bspline = NULL, comp_dat_val, comp_dat_unval, theta_pred, theta, p) {
   # Determine error setting -----------------------------------------
   ## If unvalidated variable was left blank, assume error-free ------
   errorsX = !is.null(X_unval)
@@ -32,17 +33,19 @@ smle_observed_data_loglik = function(N, n, Y = NULL, offset = NULL, X_unval = NU
   # For validated subjects --------------------------------------------------------
   #################################################################################
   ## Sum over log[P_theta(Yi|Xi)] -------------------------------------------------
-  lambda = comp_dat_all[c(1:n), offset] * exp(as.numeric((cbind(int = 1, comp_dat_all[c(1:n), theta_pred]) %*% theta)))
+  lambda = comp_dat_val[, offset] * exp(as.numeric((cbind(int = 1, comp_dat_val[, theta_pred]) %*% theta)))
   pY_X = dpois(x = comp_dat_all[-c(1:n), Y], lambda = lambda) 
-  return_loglik = sum(log(pY_X))
+  log_pY_X = log(pY_X)
+  log_pY_X[log_pY_X == -Inf] = 0
+  return_loglik = sum(log_pY_X)
   ## ------------------------------------------------- Sum over log[P_theta(Yi|Xi)]
   #################################################################################
   if (errorsX) {
     ## Sum over I(Xi=xk)Bj(Xi*)log p_kj ---------------------------------------------
-    pX = p[comp_dat_all[c(1:n), "k"], ]
+    pX = p[comp_dat_val[, "k"], ]
     log_pX = log(pX)
     log_pX[log_pX == -Inf] = 0
-    return_loglik = return_loglik + sum(comp_dat_all[c(1:n), Bspline] * log_pX)
+    return_loglik = return_loglik + sum(comp_dat_val[, Bspline] * log_pX)
     ## --------------------------------------------- Sum over I(Xi=xk)Bj(Xi*)log q_kj
   }
   #################################################################################
@@ -51,26 +54,26 @@ smle_observed_data_loglik = function(N, n, Y = NULL, offset = NULL, X_unval = NU
   # For unvalidated subjects ------------------------------------------------------
   ## Calculate P_theta(y|x) for all (y,xk) ----------------------------------------
   if (!is.null(offset)) {
-    lambda = comp_dat_all[-c(1:n), offset] * 
-      exp(as.numeric((cbind(int = 1, comp_dat_all[-c(1:n), theta_pred]) %*% theta)))
+    lambda = comp_dat_unval[, offset] * 
+      exp(as.numeric((cbind(int = 1, comp_dat_unval[, theta_pred]) %*% theta)))
   } else {
-    lambda = exp(as.numeric((cbind(int = 1, comp_dat_all[-c(1:n), theta_pred]) %*% theta)))
+    lambda = exp(as.numeric((cbind(int = 1, comp_dat_unval[, theta_pred]) %*% theta)))
   }
-  pY_X = dpois(x = comp_dat_all[-c(1:n), Y], 
+  pY_X = dpois(x = comp_dat_unval[, Y], 
                lambda = lambda) 
   ## ---------------------------------------- Calculate P_theta(y|x) for all (y,xk)
   ################################################################################
   if (errorsX) {
     ## Calculate Bj(Xi*) p_kj for all (k,j) ----------------------------------------
-    pX = p[comp_dat_all[-c(1:n), "k"], ]
+    pX = p[comp_dat_unval[, "k"], ]
     ## ---------------------------------------- Calculate Bj(Xi*) p_kj for all (k,j)
   } else {
-    pX = rep(1, nrow(comp_dat_all[-c(1:n), ]))
+    pX = rep(1, nrow(comp_dat_unval[, ]))
   }
   ################################################################################
   ## Calculate sum of P(y|xk) x Bj(X*) x p_kj ------------------------------------
   if (errorsX) {
-    person_sum = rowsum(x = pY_X * pX * comp_dat_all[-c(1:n), Bspline], 
+    person_sum = rowsum(x = pY_X * pX * comp_dat_unval[, Bspline], 
                         group = rep(seq(1, (N - n)), times = m), 
                         reorder = FALSE)
   }

@@ -13,7 +13,8 @@ smle_observed_data_loglik(
   X_val = NULL,
   Z = NULL,
   Bspline = NULL,
-  comp_dat_all,
+  comp_dat_val,
+  comp_dat_unval,
   theta_pred,
   theta,
   p
@@ -36,7 +37,9 @@ smle_observed_data_loglik(
 
 \item{Bspline}{Vector of columns containing the B-spline basis functions}
 
-\item{comp_dat_all}{Augmented dataset containing rows for each combination of unvalidated subjects' data with values from Phase II (a matrix)}
+\item{comp_dat_val}{Dataset containing rows for validated subjects' data (a matrix)}
+
+\item{comp_dat_unval}{Augmented dataset containing rows for each combination of unvalidated subjects' data with values from Phase II (a matrix)}
 
 \item{theta_pred}{Vector of columns in \code{data} that pertain to the covariates in the analysis model.}
 
