@@ -32,7 +32,7 @@ smle_observed_data_loglik = function(Y = NULL, offset = NULL, X_unval = NULL, X_
   #################################################################################
   ## Sum over log[P_theta(Yi|Xi)] -------------------------------------------------
   lambda = comp_dat_val[, offset] * exp(as.numeric((cbind(int = 1, comp_dat_val[, theta_pred]) %*% theta)))
-  pY_X = dpois(x = comp_dat_all[-c(1:n), Y], lambda = lambda) 
+  pY_X = dpois(x = comp_dat_val[, Y], lambda = lambda) 
   log_pY_X = log(pY_X)
   log_pY_X[log_pY_X == -Inf] = 0
   return_loglik = sum(log_pY_X)
