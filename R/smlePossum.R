@@ -31,84 +31,78 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
   N = nrow(data) ## total sample size (Phase I)
   n = sum(data[, Validated]) ## validation study sample size (Phase II)
 
-  # Reorder so that the n validated subjects are first ------------
+  # Reorder so that the n validated subjects are first --------------
   data = data[order(as.numeric(data[, Validated]), decreasing = TRUE), ]
+  
+  # Create row numbers ----------------------------------------------
+  data$row_num = 1:nrow(data)
   # ------------------------------------------- Prepare for algorithm
 
-  # Determine error setting -----------------------------------------
-  ## If unvalidated variable was left blank, assume error-free ------
-  errorsX = !is.null(X_unval)
-  ## ------ If unvalidated variable was left blank, assume error-free
-  # ----------------------------------------- Determine error setting
-
   # Add the B spline basis ------------------------------------------
-  if (errorsX) {
-    sn = ncol(data[, Bspline])
-    if(0 %in% colSums(data[c(1:n), Bspline])) {
-      warning("Empty sieve in validated data. Reconstruct B-spline basis and try again.", call. = FALSE)
-
-      return(list(coeff = data.frame(coeff = NA, se = NA),
-                  Bspline_coeff = NA,
-                  vcov = NA,
-                  converged = FALSE,
-                  se_converged = FALSE,
-                  converged_msg = "B-spline error",
-                  iterations = 0,
-                  od_loglik_at_conv = NA))
-    }
-
+  sn = ncol(data[, Bspline])
+  if(0 %in% colSums(data[c(1:n), Bspline])) {
+    warning("Empty sieve in validated data. Reconstruct B-spline basis and try again.", call. = FALSE)
+    
+    return(list(coeff = data.frame(coeff = NA, se = NA),
+                Bspline_coeff = NA,
+                vcov = NA,
+                converged = FALSE,
+                se_converged = FALSE,
+                converged_msg = "B-spline error",
+                iterations = 0,
+                od_loglik_at_conv = NA))
   }
   # ------------------------------------------ Add the B spline basis
 
   
   if (is.null(theta_pred)){
     theta_pred = c(X_val, Z)
-    message("Analysis model assumed main effects only.")
   }
   theta_formula = as.formula(paste0(Y, "~", paste(theta_pred, collapse = "+")))
-  if (errorsX) {
-    # Save distinct X -------------------------------------------------
-    x_obs = data.frame(unique(data[1:n, c(X_val)]))
-    x_obs = data.frame(x_obs[order(x_obs[, 1]), ])
-    m = nrow(x_obs)
-    x_obs_stacked = do.call(what = rbind,
-                            args = replicate(n = (N - n),
-                                             expr = x_obs,
-                                             simplify = FALSE)
-                            )
-    x_obs_stacked = data.frame(x_obs_stacked[order(x_obs_stacked[, 1]), ])
-    colnames(x_obs) = colnames(x_obs_stacked) = X_val
-
-    # Save static (X*,X,Y,Z) since they don't change ---------------
-    comp_dat_val = data[c(1:n), c(Y, offset, theta_pred, Bspline)]
-    comp_dat_val = merge(x = comp_dat_val,
-                         y = data.frame(x_obs, k = 1:m),
-                         all.x = TRUE)
-    comp_dat_val = comp_dat_val[, c(Y, offset, theta_pred, Bspline, "k")]
-    comp_dat_val = data.matrix(comp_dat_val)
-
-    # (m x n)xd vectors of each (one column per person, one row per x) --
-    suppressWarnings(
-      comp_dat_unval <- data.matrix(
-        cbind(data[-c(1:n), c(Y, offset, setdiff(x = theta_pred, y = c(X_val)), Bspline)],
-              x_obs_stacked,
-              k = rep(seq(1, m), each = (N - n)))
-        )
-      )
-    comp_dat_unval = comp_dat_unval[, c(Y, offset, theta_pred, Bspline, "k")]
-
-    comp_dat_all = rbind(comp_dat_val, comp_dat_unval)
-
-    # Initialize B-spline coefficients {p_kj}  ------------
-    ## Numerators sum B(Xi*) over k = 1,...,m -------------
-    ## Save as p_val_num for updates ----------------------
-    ## (contributions don't change) -----------------------
-    p_val_num = rowsum(x = comp_dat_val[, Bspline],
-                       group = comp_dat_val[, "k"],
-                       reorder = TRUE)
-    prev_p = p0 =  t(t(p_val_num) / colSums(p_val_num))
-  }
-  theta_design_mat = cbind(int = 1, comp_dat_all[, theta_pred])
+  
+  # Save distinct X -------------------------------------------------
+  x_obs = data.frame(unique(data[1:n, c(X_val)]))
+  x_obs = data.frame(x_obs[order(x_obs[, 1]), ])
+  m = nrow(x_obs)
+  x_obs_stacked = do.call(what = rbind,
+                          args = replicate(n = (N - n),
+                                           expr = x_obs,
+                                           simplify = FALSE)
+  )
+  x_obs_stacked = data.frame(x_obs_stacked[order(x_obs_stacked[, 1]), ])
+  colnames(x_obs) = colnames(x_obs_stacked) = X_val
+  
+  # Save static (X*,X,Y,Z) since they don't change ---------------
+  comp_dat_val = data[c(1:n), c(Y, offset, theta_pred, Bspline, "row_num")]
+  comp_dat_val = merge(x = comp_dat_val,
+                       y = data.frame(x_obs, k = 1:m),
+                       all.x = TRUE)
+  comp_dat_val = comp_dat_val[order(comp_dat_val[, "row_num"]), ] ## order by row_num
+  comp_dat_val = comp_dat_val[, c(Y, offset, theta_pred, Bspline, "k", "row_num")]
+  comp_dat_val = data.matrix(comp_dat_val)
+  
+  # (m x n)xd vectors of each (one column per person, one row per x) --
+  suppressWarnings(
+    comp_dat_unval <- data.matrix(
+      cbind(data[-c(1:n), c(Y, offset, setdiff(x = theta_pred, y = c(X_val)), Bspline, "row_num")],
+            x_obs_stacked,
+            k = rep(seq(1, m), each = (N - n)))
+    )
+  )
+  comp_dat_unval = comp_dat_unval[, c(Y, offset, theta_pred, Bspline, "k", "row_num")]
+  comp_dat_unval = comp_dat_unval[order(comp_dat_unval[, "row_num"]), ] ## order by row_num
+  
+  comp_dat_all = rbind(comp_dat_val, comp_dat_unval)
+  
+  # Initialize B-spline coefficients {p_kj}  ------------
+  ## Numerators sum B(Xi*) over k = 1,...,m -------------
+  ## Save as p_val_num for updates ----------------------
+  ## (contributions don't change) -----------------------
+  p_val_num = rowsum(x = comp_dat_val[, Bspline],
+                     group = comp_dat_val[, "k"],
+                     reorder = TRUE)
+  prev_p = p0 =  t(t(p_val_num) / colSums(p_val_num))
+  #theta_design_mat = cbind(int = 1, comp_dat_all[, theta_pred])
 
   # Initialize parameter values -------------------------------------
   ## theta, gamma ---------------------------------------------------
@@ -118,7 +112,9 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
   }
 
   if(initial_lr_params == "Zero") {
-    prev_theta = theta0 = matrix(0, nrow = ncol(theta_design_mat), ncol = 1)
+    prev_theta = theta0 = matrix(data = 0, 
+                                 nrow = (length(theta_pred) + 1), 
+                                 ncol = 1)
   } else if(initial_lr_params == "Complete-data") {
     if (!is.null(offset)) {
       prev_theta = theta0 = matrix(glm(formula = theta_formula,
@@ -144,7 +140,7 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
     # E Step ----------------------------------------------------------
     ## Update the psi_kyji for unvalidated subjects -------------------
     ### P(Y|X) --------------------------------------------------------
-    mu_theta = as.numeric((theta_design_mat[-c(1:n), ] %*% prev_theta))
+    mu_theta = as.numeric(cbind(int = 1, comp_dat_unval[, theta_pred]) %*% prev_theta)
     lambda = exp(mu_theta)
     if (!is.null(offset)) {
        lambda = comp_dat_unval[, offset] * lambda
@@ -154,13 +150,11 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
     ### -------------------------------------------------------- P(Y|X)
     ###################################################################
     ### P(X|X*) -------------------------------------------------------
-    if (errorsX) {
-      ### p_kj ----------------------------------------------------------
-      ### need to reorder pX so that it's x1, ..., x1, ...., xm, ..., xm-
-      ### multiply by the B-spline terms
-      pX = prev_p[rep(seq(1, m), each = (N - n)), ] * comp_dat_unval[, Bspline]
-      ### ---------------------------------------------------------- p_kj
-    }
+    ### p_kj ----------------------------------------------------------
+    ### need to reorder pX so that it's x1, ..., x1, ...., xm, ..., xm-
+    ### multiply by the B-spline terms
+    pX = prev_p[rep(seq(1, m), each = (N - n)), ] * comp_dat_unval[, Bspline]
+    ### ---------------------------------------------------------- p_kj
     ### ------------------------------------------------------- P(X|X*)
     ###################################################################
     ### Estimate conditional expectations -----------------------------
@@ -170,7 +164,7 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
       ### Update denominator ------------------------------------------
       #### Sum up all rows per id (e.g. sum over xk) ------------------
       psi_denom = rowsum(x = psi_num,
-                         group = rep(seq(1, (N - n)), times = m))
+                         group = comp_dat_unval[, "row_num"])
       #### Then sum over the sn splines -------------------------------
       psi_denom = rowSums(psi_denom)
       #### Avoid NaN resulting from dividing by 0 ---------------------
@@ -262,7 +256,6 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
     }
 
     return(list(coeff = data.frame(coeff = NA, se = NA),
-                outcome_err_coeff = data.frame(coeff = NA, se = NA),
                 Bspline_coeff = NA,
                 vcov = NA,
                 converged = FALSE,
@@ -284,18 +277,18 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
                                  ncol = 1)
     }
 
-    ## Calculate pl(theta) -------------------------------------------------
-    od_loglik_theta = smle_observed_data_loglik(Y = Y,
-                                                offset = offset,
-                                                X_unval = X_unval,
-                                                X_val = X_val,
-                                                Z = Z,
-                                                Bspline = Bspline,
-                                                comp_dat_val = comp_dat_val,
-                                                comp_dat_unval = comp_dat_unval,
-                                                theta_pred = theta_pred,
-                                                theta = new_theta,
-                                                p = new_p)
+    ## Calculate l(theta) --------------------------------------------------
+    od_loglik_theta = smle_loglik(Y = Y,
+                                  offset = offset,
+                                  X_unval = X_unval,
+                                  X_val = X_val,
+                                  Z = Z,
+                                  Bspline = Bspline,
+                                  comp_dat_val = comp_dat_val,
+                                  comp_dat_unval = comp_dat_unval,
+                                  theta_pred = theta_pred,
+                                  theta = new_theta,
+                                  p = new_p)
 
     return(list(coeff = data.frame(coeff = new_theta, se = NA),
                 Bspline_coeff = cbind(k = 1:m, new_p),
@@ -310,22 +303,23 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
     h_N = h_N_scale * N ^ ( - 1 / 2) # perturbation ----------------------------
 
     if (!errorsX) {
-      new_p = p_val_num = matrix(NA, 
+      new_p = p_val_num = matrix(data = NA, 
                                  nrow = 1, 
                                  ncol = 1)
     }
 
     ## Calculate pl(theta) -------------------------------------------------
-    od_loglik_theta = smle_observed_data_loglik(Y = Y,
-      X_unval = X_unval,
-      X_val = X_val,
-      Z = Z,
-      Bspline = Bspline,
-      comp_dat_val = comp_dat_val,
-      comp_dat_unval = comp_dat_unval,
-      theta_pred = theta_pred,
-      theta = new_theta,
-      p = new_p)
+    od_loglik_theta = smle_loglik(Y = Y,
+                                  offset = offset,                                          
+                                  X_unval = X_unval,
+                                  X_val = X_val,
+                                  Z = Z,
+                                  Bspline = Bspline,
+                                  comp_dat_val = comp_dat_val,
+                                  comp_dat_unval = comp_dat_unval,
+                                  theta_pred = theta_pred,
+                                  theta = new_theta,
+                                  p = new_p)
 
     I_theta <- matrix(od_loglik_theta, 
                       nrow = nrow(new_theta), 
@@ -350,12 +344,14 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
       MAX_ITER = MAX_ITER)
 
     if (any(is.na(single_pert_theta))) {
-      I_theta <- matrix(NA, nrow = nrow(new_theta), ncol = nrow(new_theta))
+      I_theta <- matrix(data = NA, 
+                        nrow = nrow(new_theta), 
+                        ncol = nrow(new_theta))
       SE_CONVERGED <- FALSE
     } else {
-      spt_wide <- matrix(rep(c(single_pert_theta), times = ncol(I_theta)),
-       ncol = ncol(I_theta),
-       byrow = FALSE)
+      spt_wide <- matrix(data = rep(c(single_pert_theta), times = ncol(I_theta)),
+                         ncol = ncol(I_theta),
+                         byrow = FALSE)
       #for the each kth row of single_pert_theta add to the kth row / kth column of I_theta
       I_theta <- I_theta - spt_wide - t(spt_wide)
       SE_CONVERGED <- TRUE
@@ -382,7 +378,9 @@ smlePossum = function(Y, offset = NULL, X_unval, X_val, Z = NULL, Validated = NU
         MAX_ITER = MAX_ITER,
         TOL = TOL)
 
-      dpt <- matrix(0, nrow = nrow(I_theta), ncol = ncol(I_theta))
+      dpt <- matrix(data = 0, 
+                    nrow = nrow(I_theta), 
+                    ncol = ncol(I_theta))
       dpt[c,c] <- double_pert_theta[1] #Put double on the diagonal
       if(c < ncol(I_theta)) {
         ## And fill the others in on the cth row/ column
