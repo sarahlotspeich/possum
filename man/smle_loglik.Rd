@@ -8,14 +8,13 @@ smle_loglik(
   Y = NULL,
   offset = NULL,
   X_unval = NULL,
-  X_val = NULL,
+  X = NULL,
   Z = NULL,
-  Bspline = NULL,
   comp_dat_val,
   comp_dat_unval,
-  theta_pred,
-  theta,
-  p
+  beta_pred,
+  beta,
+  ppv
 )
 }
 \arguments{
@@ -25,26 +24,24 @@ smle_loglik(
 
 \item{X_unval}{Column(s) with the unvalidated covariates}
 
-\item{X_val}{Column(s) with the validated covariates}
+\item{X}{Column(s) with the validated covariates}
 
 \item{Z}{(Optional) Column(s) with additional error-free covariates}
-
-\item{Bspline}{Vector of columns containing the B-spline basis functions}
 
 \item{comp_dat_val}{Dataset containing rows for validated subjects' data (a matrix)}
 
 \item{comp_dat_unval}{Augmented dataset containing rows for each combination of unvalidated subjects' data with values from Phase II (a matrix)}
 
-\item{theta_pred}{Vector of columns in \code{data} that pertain to the covariates in the analysis model.}
+\item{beta_pred}{Vector of columns in \code{data} that pertain to the covariates in the analysis model.}
 
-\item{theta}{Parameters for the analysis model (a column vector)}
+\item{beta}{Parameters for the analysis model (a column vector)}
 
-\item{p}{B-spline coefficients for the approximated covariate error model (a matrix)}
+\item{ppv}{Positive predictive value for the misclassification mechanism (a scalar)}
 }
 \value{
 Scalar value of the function
 }
 \description{
 This function returns the value of the observed-data log-likelihood (equation (#) in Lotspeich et al. (2023+))
-for a given dataset and parameter values \code{theta} and \code{p}.
+for a given dataset and parameter values \code{beta} and \code{p}.
 }

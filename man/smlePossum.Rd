@@ -9,13 +9,11 @@ smlePossum(
   Y,
   offset = NULL,
   X_unval,
-  X_val,
+  X,
   Z = NULL,
-  Validated = NULL,
-  Bspline = NULL,
   data,
-  theta_pred = NULL,
-  initial_lr_params = "Zero",
+  beta_pred = NULL,
+  beta0 = "Zero",
   h_N_scale = 1,
   noSE = FALSE,
   TOL = 1e-04,
@@ -25,23 +23,19 @@ smlePossum(
 \arguments{
 \item{Y}{Column name with the outcome}
 
-\item{offset}{(Optional) Column name with the offset for \code{Y}. Default is \code{offset = NULL} for no offset}
+\item{offset}{(Optional) Column name with the offset for \code{Y}. Default is \code{offset = NULL} for no offset.}
 
-\item{X_unval}{Column name(s) with the unvalidated covariates.  If \code{X_unval} and \code{X_val} are \code{null}, all covariates are assumed to be error-free.}
+\item{X_unval}{Column name(s) with the unvalidated covariates.}
 
-\item{X_val}{Column name(s) with the validated covariates. If \code{X_unval} and \code{X_val} are \code{null}, all covariates are assumed to be error-free.}
+\item{X}{Column name(s) with the validated covariates.}
 
 \item{Z}{(Optional) Column name(s) with additional error-free covariates.}
 
-\item{Validated}{Column name with the validation indicator. The validation indicator can be defined as \code{Validated = 1} or \code{TRUE} if the subject was validated and \code{Validated = 0} or \code{FALSE} otherwise.}
+\item{data}{A dataframe with one row per subject containing columns: \code{Y}, \code{X_unval}, \code{X}, \code{Z}, \code{Validated}, and \code{Bspline}.}
 
-\item{Bspline}{Vector of column names containing the B-spline basis functions.}
+\item{beta_pred}{Vector of columns in \code{data} that pertain to the covariates in the analysis model. The default assumes main effects of \code{X} and \code{Z} only.}
 
-\item{data}{A dataframe with one row per subject containing columns: \code{Y}, \code{X_unval}, \code{X_val}, \code{Z}, \code{Validated}, and \code{Bspline}.}
-
-\item{theta_pred}{Vector of columns in \code{data} that pertain to the covariates in the analysis model. The default assumes main effects of \code{X_val} and \code{Z} only.}
-
-\item{initial_lr_params}{Initial values for parametric model parameters. Choices include (1) \code{"Zero"} (non-informative starting values) or (2) \code{"Complete-data"} (estimated based on validated subjects only)}
+\item{beta0}{Initial values for parametric model parameters. Choices include (1) \code{"Zero"} (non-informative starting values, the default) or (2) \code{"Complete-data"} (estimated based on validated subjects only)}
 
 \item{h_N_scale}{Size of the perturbation used in estimating the standard errors via profile likelihood. If none is supplied, default is \code{h_N_scale = 1}.}
 
@@ -53,7 +47,7 @@ smlePossum(
 }
 \value{
 \item{coeff}{dataframe with final coefficient and standard error estimates (where applicable) for the analysis model.}
-\item{Bspline_coeff}{dataframe with final B-spline coefficient estimates (where applicable).}
+\item{ppv}{final positive predictive value estimate.}
 \item{vcov}{variance-covariance matrix for \code{coeff} (where applicable).}
 \item{converged}{indicator of EM algorithm convergence for parameter estimates.}
 \item{se_converged}{indicator of standard error estimate convergence.}
