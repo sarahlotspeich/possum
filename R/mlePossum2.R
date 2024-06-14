@@ -228,10 +228,12 @@ mlePossum2 = function(analysis_formula, error_formula, data, beta_init = "Zero",
     prev_beta = new_beta
     prev_eta = new_eta
   }
-  rownames(new_beta) <- c("Intercept", X, Z)
-  rownames(new_eta) <- ifelse(test = noFN, 
-                              yes = c("Intercept", Z), 
-                              no = c("Intercept", X_unval, Z))
+  rownames(new_beta) = c("Intercept", X, Z)
+  if(noFN) {
+    rownames(new_eta) = c("Intercept", Z)
+  } else {
+    rownames(new_eta) = c("Intercept", X_unval, Z)
+  }
   
   if(!CONVERGED) {
     if(it > MAX_ITER) {
