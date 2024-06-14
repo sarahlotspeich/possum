@@ -50,7 +50,7 @@ mle_loglik = function(Y = NULL, offset = NULL, X_unval = NULL, X = NULL, Z = NUL
                         prob = 1 / (1 + exp(- mu_eta)))
     #### Force P(X=0|X*=0,Z)=1 and P(X=1|X*=0,Z)=0 for all Z -----------------
     pXgivXstar[which(comp_dat_all[, X_unval] == 0 & comp_dat_all[, X] == 0)] = 1
-    pXgivXstar[which(comp_dat_all[, X_unval] == 0 & comp_dat_all[, X] == 0)] = 0
+    pXgivXstar[which(comp_dat_all[, X_unval] == 0 & comp_dat_all[, X] == 1)] = 0
   } else { #### If two-sided errors, logistic regression on all rows ---------
     #### mu = eta0 + eta1X* + eta2Z + ... 
     mu_eta = as.numeric(cbind(int = 1, comp_dat_all[, c(X_unval, Z)]) %*% eta)
