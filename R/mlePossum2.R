@@ -102,6 +102,7 @@ mlePossum2 = function(analysis_formula, error_formula, data, beta_init = "Zero",
   if(eta_init == "Zero") {
     if (noFN) {
       #### If one-sided (no false negatives), X is not included in this model --
+      #### Force P(X=0|X*=0,Z) = 1 and only model P(X|X*=1,Z) ------------------
       prev_eta = eta0 = matrix(data = 0, 
                                nrow = (length(Z) + 1), 
                                ncol = 1)
@@ -158,7 +159,7 @@ mlePossum2 = function(analysis_formula, error_formula, data, beta_init = "Zero",
                           prob = 1 / (1 + exp(- mu_eta)))
       #### Force P(X=0|X*=0,Z)=1 and P(X=1|X*=0,Z)=0 for all Z -----------------
       pXgivXstar[which(comp_dat_unval[, X_unval] == 0 & comp_dat_unval[, X] == 0)] = 1
-      pXgivXstar[which(comp_dat_unval[, X_unval] == 0 & comp_dat_unval[, X] == 0)] = 0
+      pXgivXstar[which(comp_dat_unval[, X_unval] == 0 & comp_dat_unval[, X] == 1)] = 0
     } else { #### If two-sided errors, logistic regression on all rows ---------
       #### mu = eta0 + eta1X* + eta2Z + ... 
       mu_eta = as.numeric(cbind(int = 1, comp_dat_unval[, c(X_unval, Z)]) %*% prev_eta)
