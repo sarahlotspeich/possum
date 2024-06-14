@@ -135,7 +135,7 @@ mlePossum2 = function(analysis_formula, error_formula, data, beta_init = "Zero",
   ## Begin algorithm -----------------------------------------------------------
   while(it <= MAX_ITER & !CONVERGED) {
     # E Step -------------------------------------------------------------------
-    ## Update the psi_xi = P(X=x|Yi,Xi*,Z) for unvalidated subjects ------------
+    ## Update the phi_xi = P(X=x|Yi,Xi*,Z) for unvalidated subjects ------------
     ### Analysis model: P(Y|X,Z) -----------------------------------------------
     #### mu = beta0 + beta1X + beta2Z + ... 
     mu_beta = as.numeric(cbind(int = 1, comp_dat_unval[, c(X, Z)]) %*% prev_beta)
@@ -172,28 +172,28 @@ mlePossum2 = function(analysis_formula, error_formula, data, beta_init = "Zero",
     ## Estimate conditional expectations ---------------------------------------
     ### Update numerator -------------------------------------------------------
     #### P(Y|X,Z)P(X|X*,Z) -----------------------------------------------------
-    psi_num = pYgivX * pXgivXstar ##### dim: 2(N - n) x 1
-    psi_num_wide = matrix(data = psi_num, 
+    phi_num = pYgivX * pXgivXstar ##### dim: 2(N - n) x 1
+    phi_num_wide = matrix(data = phi_num, 
                           nrow = (N - n), 
                           ncol = 2, 
                           byrow = FALSE)
     ### Update denominator -----------------------------------------------------
     #### P(Y|X=0,Z)P(X=0|X*) + P(Y|X=1,Z)P(X=1|X*) -----------------------------
-    psi_denom = rowSums(psi_num_wide) ##### dim: (N - n) x 1
+    phi_denom = rowSums(phi_num_wide) ##### dim: (N - n) x 1
     #### Avoid NaN resulting from dividing by 0 --------------------------------
-    psi_denom[psi_denom == 0] = 1
+    phi_denom[phi_denom == 0] = 1
     ### Divide them to get psi = E{I(X=x)|Y,X*} --------------------------------
-    psi = psi_num / rep(x = psi_denom, times = 2) 
+    psi = phi_num / rep(x = phi_denom, times = 2) 
     #### Add indicators for validated rows -------------------------------------
-    psi_aug = c(rep(x = 1, times = n), psi)
+    phi_aug = c(rep(x = 1, times = n), psi)
     ############################################################################
     # M Step -------------------------------------------------------------------
     ## Update beta using weighted Poisson regression ---------------------------
     new_beta = suppressWarnings(
       matrix(data = glm(formula = analysis_formula,
                         family = poisson,
-                        data = data.frame(cbind(comp_dat_all, psi_aug)),
-                        weights = psi_aug)$coefficients,
+                        data = data.frame(cbind(comp_dat_all, phi_aug)),
+                        weights = phi_aug)$coefficients,
              ncol = 1)
     )
     ## Check for beta convergence ----------------------------------------------
@@ -205,16 +205,16 @@ mlePossum2 = function(analysis_formula, error_formula, data, beta_init = "Zero",
       new_eta = suppressWarnings(
         matrix(data = glm(formula = error_formula,
                           family = binomial,
-                          data = data.frame(cbind(comp_dat_all, psi_aug))[which_unval_case, ],
-                          weights = psi_aug)$coefficients,
+                          data = data.frame(cbind(comp_dat_all, phi_aug))[which_unval_case, ],
+                          weights = phi_aug)$coefficients,
                ncol = 1)
       )
     } else {
       new_eta = suppressWarnings(
         matrix(data = glm(formula = error_formula,
                           family = binomial,
-                          data = data.frame(cbind(comp_dat_all, psi_aug)),
-                          weights = psi_aug)$coefficients,
+                          data = data.frame(cbind(comp_dat_all, phi_aug)),
+                          weights = phi_aug)$coefficients,
                ncol = 1)
       )
     }
