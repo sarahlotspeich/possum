@@ -6,7 +6,6 @@
 #' @param data dataset containing at least the variables included in \code{error_formula} and \code{analysis_formula}.
 #' @param beta_init Initial values used to fit \code{analysis_formula}. Choices include (1) \code{"Zero"} (non-informative starting values, the default) or (2) \code{"Complete-data"} (estimated based on validated data only).
 #' @param eta_init Initial values used to fit \code{error_formula}. Choices include (1) \code{"Zero"} (non-informative starting values, the default) or (2) \code{"Complete-data"} (estimated based on validated data only).
-#' @param noFN logical, if \code{noFN = FALSE} (the default), then it is assumed that there can be both false positives and false negatives in the error-prone exposure. If \code{noFN = TRUE}, the error mechanism is restricted to only false positives.
 #' @param noSE Indicator for whether standard errors are desired. Defaults to \code{noSE = FALSE}.
 #' @param hN_scale Size of the perturbation used in estimating the standard errors via profile likelihood. If none is supplied, default is \code{hN_scale = 1}.
 #' @param TOL Tolerance between iterations in the EM algorithm used to define convergence.
@@ -20,7 +19,7 @@
 #' \item{converged_msg}{(where applicable) description of non-convergence.}
 #' @export
 
-mlePossum2 = function(analysis_formula, error_formula, data, beta_init = "Zero", eta_init = "Zero", noFN = FALSE, noSE = TRUE, hN_scale = 1, TOL = 1E-4, MAX_ITER = 1000) {
+mlePossum2 = function(analysis_formula, error_formula, data, beta_init = "Zero", eta_init = "Zero", noSE = TRUE, hN_scale = 1, TOL = 1E-4, MAX_ITER = 1000) {
   ## Extract variable names from user-specified formulas
   Y = as.character(as.formula(analysis_formula))[2]
   X = as.character(as.formula(error_formula))[2]
@@ -49,6 +48,9 @@ mlePossum2 = function(analysis_formula, error_formula, data, beta_init = "Zero",
   
   ## Reorder so that the n validated subjects are first ------------------------
   data = data[order(as.numeric(data[, "Validated"]), decreasing = TRUE), ]
+  
+  # Check for possibility of false negatives in validated data -----------------
+  noFN = any(data[1:n, X] == 1 & data[1:n, X_unval] == 0)
   
   ## Create row numbers --------------------------------------------------------
   data[, "row_num"] = 1:N

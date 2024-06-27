@@ -11,7 +11,6 @@ mlePossum2(
   data,
   beta_init = "Zero",
   eta_init = "Zero",
-  noFN = FALSE,
   noSE = TRUE,
   hN_scale = 1,
   TOL = 1e-04,
@@ -28,8 +27,6 @@ mlePossum2(
 \item{beta_init}{Initial values used to fit \code{analysis_formula}. Choices include (1) \code{"Zero"} (non-informative starting values, the default) or (2) \code{"Complete-data"} (estimated based on validated data only).}
 
 \item{eta_init}{Initial values used to fit \code{error_formula}. Choices include (1) \code{"Zero"} (non-informative starting values, the default) or (2) \code{"Complete-data"} (estimated based on validated data only).}
-
-\item{noFN}{logical, if \code{noFN = FALSE} (the default), then it is assumed that there can be both false positives and false negatives in the error-prone exposure. If \code{noFN = TRUE}, the error mechanism is restricted to only false positives.}
 
 \item{noSE}{Indicator for whether standard errors are desired. Defaults to \code{noSE = FALSE}.}
 
