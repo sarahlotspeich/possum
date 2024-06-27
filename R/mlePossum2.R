@@ -50,7 +50,7 @@ mlePossum2 = function(analysis_formula, error_formula, data, beta_init = "Zero",
   data = data[order(as.numeric(data[, "Validated"]), decreasing = TRUE), ]
   
   # Check for possibility of false negatives in validated data -----------------
-  noFN = any(data[1:n, X] == 1 & data[1:n, X_unval] == 0)
+  noFN = !any(data[1:n, X] == 1 & data[1:n, X_unval] == 0)
   
   ## Create row numbers --------------------------------------------------------
   data[, "row_num"] = 1:N
