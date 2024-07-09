@@ -129,7 +129,7 @@ mlePossum2 = function(analysis_formula, error_formula, data, beta_init = "Zero",
   }
   # ------------------------------------------------------ Prepare for algorithm
   ##############################################################################
-  # Estimate beta and ppv using EM algorithm -----------------------------------
+  # Estimate beta and eta using EM algorithm -----------------------------------
   ## Set parameters for algorithm convergence ----------------------------------
   CONVERGED = FALSE
   CONVERGED_MSG = "Unknown"
@@ -237,7 +237,9 @@ mlePossum2 = function(analysis_formula, error_formula, data, beta_init = "Zero",
   } else {
     rownames(new_eta) = c("Intercept", X_unval, Z)
   }
-  
+  # ----------------------------------- Estimate beta and eta using EM algorithm
+  ##############################################################################
+  # Check convergence statuses ------------------------------------------------- 
   if(!CONVERGED) {
     if(it > MAX_ITER) {
       CONVERGED_MSG = "MAX_ITER reached"
@@ -249,13 +251,18 @@ mlePossum2 = function(analysis_formula, error_formula, data, beta_init = "Zero",
                 converged = FALSE,
                 se_converged = NA,
                 converged_msg = "MAX_ITER reached"))
+  } else {
+    ## Even if algorithm converged, check for fitted probabilities close to ----
+    ## Zero or one with the etas at convergence --------------------------------
+    if (any(pXgivXstar < 1e-308 || pXgivXstar > (1-1e-16))) {
+      CONVERGED_MSG = "Fitted probabilities numerically 0 or 1 at convergence" 
+    } else {
+      CONVERGED_MSG = "Converged" 
+    }
   }
-  
-  if(CONVERGED) { 
-    CONVERGED_MSG = "Converged" 
-  }
-  
-  # ---------------------------------------------- Estimate beta using EM
+  # ------------------------------------------------- Check convergence statuses 
+  ##############################################################################
+  # Create list and return results ---------------------------------------------
   if(noSE){
     return(list(coefficients = data.frame(coeff = new_beta, se = NA),
                 misclass_coefficients = data.frame(coeff = new_eta, se = NA),
@@ -390,4 +397,5 @@ mlePossum2 = function(analysis_formula, error_formula, data, beta_init = "Zero",
                 se_converged = SE_CONVERGED,
                 converged_msg = CONVERGED_MSG))
   }
+  # --------------------------------------------- Create list and return results
 }
