@@ -254,7 +254,7 @@ mlePossum2 = function(analysis_formula, error_formula, data, beta_init = "Zero",
   } else {
     ## Even if algorithm converged, check for fitted probabilities close to ----
     ## Zero or one with the etas at convergence --------------------------------
-    if (any(pXgivXstar < 1e-308 || pXgivXstar > (1-1e-16))) {
+    if (any(pXgivXstar < 1e-308 | pXgivXstar > (1-1e-16))) {
       CONVERGED_MSG = "Fitted probabilities numerically 0 or 1 at convergence" 
     } else {
       CONVERGED_MSG = "Converged" 
