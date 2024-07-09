@@ -159,6 +159,9 @@ mlePossum2 = function(analysis_formula, error_formula, data, beta_init = "Zero",
       pXgivXstar = dbinom(x = comp_dat_unval[, X], 
                           size = 1, 
                           prob = 1 / (1 + exp(- mu_eta)))
+      #### Save min/max P(X|X*=1,Z) to check for numerical 0/1 later -----------
+      min_pXgivXstar = min(pXgivXstar[which(comp_dat_unval[, X_unval] == 1)])
+      max_pXgivXstar = max(pXgivXstar[which(comp_dat_unval[, X_unval] == 1)])
       #### Force P(X=0|X*=0,Z)=1 and P(X=1|X*=0,Z)=0 for all Z -----------------
       pXgivXstar[which(comp_dat_unval[, X_unval] == 0 & comp_dat_unval[, X] == 0)] = 1
       pXgivXstar[which(comp_dat_unval[, X_unval] == 0 & comp_dat_unval[, X] == 1)] = 0
@@ -169,6 +172,9 @@ mlePossum2 = function(analysis_formula, error_formula, data, beta_init = "Zero",
       pXgivXstar = dbinom(x = comp_dat_unval[, X], 
                           size = 1, 
                           prob = 1 / (1 + exp(- mu_eta)))
+      #### Save min/max P(X|X,Z) to check for numerical 0/1 later --------------
+      min_pXgivXstar = min(pXgivXstar)
+      max_pXgivXstar = max(pXgivXstar)
     }
     ############################################################################
     ## Estimate conditional expectations ---------------------------------------
@@ -254,7 +260,7 @@ mlePossum2 = function(analysis_formula, error_formula, data, beta_init = "Zero",
   } else {
     ## Even if algorithm converged, check for fitted probabilities close to ----
     ## Zero or one with the etas at convergence --------------------------------
-    if (any(pXgivXstar < 1e-308 | pXgivXstar > (1-1e-16))) {
+    if (min_pXgivXstar < 1e-308 | max_pXgivXstar > (1-1e-16)) {
       CONVERGED_MSG = "Fitted probabilities numerically 0 or 1 at convergence" 
     } else {
       CONVERGED_MSG = "Converged" 
