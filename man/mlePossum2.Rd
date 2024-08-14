@@ -7,6 +7,7 @@ This function returns the maximum likelihood estimates (MLEs) for the Poisson re
 \usage{
 mlePossum2(
   analysis_formula,
+  family = poisson,
   error_formula,
   data,
   beta_init = "Zero",
@@ -19,6 +20,8 @@ mlePossum2(
 }
 \arguments{
 \item{analysis_formula}{analysis model formula (or coercible to formula), a formula expression as for other regression models. The response should be the Poisson model outcome, and, if needed, the offset can be provided as an \code{offset()} term.}
+
+\item{family}{analysis model family, to be passed through to \code{glm}. See \code{?glm} for options.}
 
 \item{error_formula}{misclassification model formula (or coercible to formula), a formula expression as for other regression models. The response should be the error-free version of the error-prone of the covariate.}
 
@@ -39,7 +42,7 @@ mlePossum2(
 \value{
 \item{coefficients}{dataframe with final coefficient and standard error estimates (where applicable) for the analysis model.}
 \item{misclass_coefficients}{dataframe with final coefficient and standard error estimates (where applicable) for the error model.}
-\item{vcov}{variance-covariance matrix for \code{coeff} (where applicable).}
+\item{vcov}{variance-covariance matrix for \code{coefficients} (where applicable).}
 \item{converged}{indicator of EM algorithm convergence for parameter estimates.}
 \item{se_converged}{indicator of standard error estimate convergence.}
 \item{converged_msg}{(where applicable) description of non-convergence.}

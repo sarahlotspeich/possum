@@ -2,6 +2,7 @@
 #' This function returns the maximum likelihood estimates (MLEs) for the Poisson regression model with covariate misclassification from Mullan et al. (2024+)
 #'
 #' @param analysis_formula analysis model formula (or coercible to formula), a formula expression as for other regression models. The response should be the Poisson model outcome, and, if needed, the offset can be provided as an \code{offset()} term.
+#' @param family analysis model family, to be passed through to \code{glm}. See \code{?glm} for options.
 #' @param error_formula misclassification model formula (or coercible to formula), a formula expression as for other regression models. The response should be the error-free version of the error-prone of the covariate.
 #' @param data dataset containing at least the variables included in \code{error_formula} and \code{analysis_formula}.
 #' @param beta_init Initial values used to fit \code{analysis_formula}. Choices include (1) \code{"Zero"} (non-informative starting values, the default) or (2) \code{"Complete-data"} (estimated based on validated data only).
@@ -13,13 +14,13 @@
 #' @return 
 #' \item{coefficients}{dataframe with final coefficient and standard error estimates (where applicable) for the analysis model.}
 #' \item{misclass_coefficients}{dataframe with final coefficient and standard error estimates (where applicable) for the error model.}
-#' \item{vcov}{variance-covariance matrix for \code{coeff} (where applicable).}
+#' \item{vcov}{variance-covariance matrix for \code{coefficients} (where applicable).}
 #' \item{converged}{indicator of EM algorithm convergence for parameter estimates.}
 #' \item{se_converged}{indicator of standard error estimate convergence.}
 #' \item{converged_msg}{(where applicable) description of non-convergence.}
 #' @export
 
-mlePossum2 = function(analysis_formula, error_formula, data, beta_init = "Zero", eta_init = "Zero", noSE = TRUE, hN_scale = 1, TOL = 1E-4, MAX_ITER = 1000) {
+mlePossum2 = function(analysis_formula, family = poisson, error_formula, data, beta_init = "Zero", eta_init = "Zero", noSE = TRUE, hN_scale = 1, TOL = 1E-4, MAX_ITER = 1000) {
   ## Extract variable names from user-specified formulas
   Y = as.character(as.formula(analysis_formula))[2]
   X = as.character(as.formula(error_formula))[2]
@@ -85,7 +86,7 @@ mlePossum2 = function(analysis_formula, error_formula, data, beta_init = "Zero",
                                ncol = 1)
   } else if(beta_init == "Complete-data") {
     prev_beta = beta0 = matrix(glm(formula = as.formula(analysis_formula),
-                                   family = "poisson",
+                                   family = family,
                                    data = data[c(1:n), ])$coefficients,
                                ncol = 1)
   }
@@ -199,7 +200,7 @@ mlePossum2 = function(analysis_formula, error_formula, data, beta_init = "Zero",
     ## Update beta using weighted Poisson regression ---------------------------
     new_beta = suppressWarnings(
       matrix(data = glm(formula = analysis_formula,
-                        family = poisson,
+                        family = family,
                         data = data.frame(cbind(comp_dat_all, phi_aug)),
                         weights = phi_aug)$coefficients,
              ncol = 1)
