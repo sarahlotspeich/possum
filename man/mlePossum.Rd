@@ -5,21 +5,47 @@
 \title{Maximum likelihood estimation for Poisson regression problems with covariate misclassification
 This function returns the maximum likelihood estimates (MLEs) for the Poisson regression model with covariate misclassification from Mullan et al. (2024+)}
 \usage{
-mlePossum(error_formula, analysis_formula, offset = NULL, data, noFN = FALSE)
+mlePossum(
+  analysis_formula,
+  family = poisson,
+  error_formula,
+  data,
+  beta_init = "Zero",
+  eta_init = "Zero",
+  noSE = TRUE,
+  hN_scale = 1,
+  TOL = 1e-04,
+  MAX_ITER = 1000
+)
 }
 \arguments{
+\item{analysis_formula}{analysis model formula (or coercible to formula), a formula expression as for other regression models. The response should be the Poisson model outcome, and, if needed, the offset can be provided as an \code{offset()} term.}
+
+\item{family}{analysis model family, to be passed through to \code{glm}. See \code{?glm} for options.}
+
 \item{error_formula}{misclassification model formula (or coercible to formula), a formula expression as for other regression models. The response should be the error-free version of the error-prone of the covariate.}
-
-\item{analysis_formula}{analysis model formula (or coercible to formula), a formula expression as for other regression models. The response should be the Poisson model outcome, and, if needed, the offset can be provided as the \code{offset} argument.}
-
-\item{offset}{optional, variable name string for the analysis model offset. Default is \code{offset = NULL} for no offset.}
 
 \item{data}{dataset containing at least the variables included in \code{error_formula} and \code{analysis_formula}.}
 
-\item{noFN}{logical, if \code{noFN = FALSE} (the default), then it is assumed that there can be both false positives and false negatives in the error-prone exposure. If \code{noFN = TRUE}, the error mechanism is restricted to only false positives.}
+\item{beta_init}{Initial values used to fit \code{analysis_formula}. Choices include (1) \code{"Zero"} (non-informative starting values, the default) or (2) \code{"Complete-data"} (estimated based on validated data only).}
+
+\item{eta_init}{Initial values used to fit \code{error_formula}. Choices include (1) \code{"Zero"} (non-informative starting values, the default) or (2) \code{"Complete-data"} (estimated based on validated data only).}
+
+\item{noSE}{Indicator for whether standard errors are desired. Defaults to \code{noSE = FALSE}.}
+
+\item{hN_scale}{Size of the perturbation used in estimating the standard errors via profile likelihood. If none is supplied, default is \code{hN_scale = 1}.}
+
+\item{TOL}{Tolerance between iterations in the EM algorithm used to define convergence.}
+
+\item{MAX_ITER}{Maximum number of iterations allowed in the EM algorithm.}
 }
 \value{
-dataframe with final coefficient and standard error estimates for the analysis model
+\item{coefficients}{dataframe with final coefficient and standard error estimates (where applicable) for the analysis model.}
+\item{misclass_coefficients}{dataframe with final coefficient and standard error estimates (where applicable) for the error model.}
+\item{vcov}{variance-covariance matrix for \code{coefficients} (where applicable).}
+\item{converged}{indicator of EM algorithm convergence for parameter estimates.}
+\item{se_converged}{indicator of standard error estimate convergence.}
+\item{converged_msg}{(where applicable) description of non-convergence.}
 }
 \description{
 Maximum likelihood estimation for Poisson regression problems with covariate misclassification
