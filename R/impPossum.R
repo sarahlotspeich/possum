@@ -23,7 +23,7 @@ impPossum = function(imputation_formula, analysis_formula, data, adjMatrix = NUL
   } else {
     cc_fit = fitme(formula = analysis_formula, 
                    family = poisson, 
-                   adjMatrix = adj_matrix,
+                   adjMatrix = adjMatrix,
                    data = data)
     dim_beta = nrow(as.data.frame(summary(cc_fit)["beta_table"]))
   }
@@ -80,7 +80,7 @@ impPossum = function(imputation_formula, analysis_formula, data, adjMatrix = NUL
         ### Fit outcome model with imputed X (Poisson)
         fit = fitme(formula = analysis_formula, 
                     family = poisson, 
-                    adjMatrix = adj_matrix,
+                    adjMatrix = adjMatrix,
                     data = data)
         
         ### Save parameters
@@ -122,7 +122,7 @@ impPossum = function(imputation_formula, analysis_formula, data, adjMatrix = NUL
       ### Fit outcome model with imputed X (Poisson)
       fit = fitme(formula = analysis_formula, 
                   family = poisson, 
-                  adjMatrix = adj_matrix,
+                  adjMatrix = adjMatrix,
                   data = data)
       
       ### Save parameters
