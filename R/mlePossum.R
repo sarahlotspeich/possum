@@ -8,7 +8,7 @@
 #' @param beta_init Initial values used to fit \code{analysis_formula}. Choices include (1) \code{"Zero"} (non-informative starting values, the default) or (2) \code{"Complete-data"} (estimated based on validated data only).
 #' @param eta_init Initial values used to fit \code{error_formula}. Choices include (1) \code{"Zero"} (non-informative starting values, the default) or (2) \code{"Complete-data"} (estimated based on validated data only).
 #' @param noSE Indicator for whether standard errors are desired. Defaults to \code{noSE = FALSE}.
-#' @param analytical_SE Indicator for whether analytical standard error should be calculated. Defaults to \code{analytical_SE = FALSE}
+#' @param alternative_SE Indicator for whether alternative standard error should be calculated. Defaults to \code{alternative_SE = FALSE}
 #' @param hN_scale Size of the perturbation used in estimating the standard errors via profile likelihood. If none is supplied, default is \code{hN_scale = 1}.
 #' @param TOL Tolerance between iterations in the EM algorithm used to define convergence.
 #' @param MAX_ITER Maximum number of iterations allowed in the EM algorithm.
@@ -21,7 +21,8 @@
 #' \item{converged_msg}{(where applicable) description of non-convergence.}
 #' @export
 
-mlePossum = function(analysis_formula, family = poisson, error_formula, data, beta_init = "Zero", eta_init = "Zero", noSE = TRUE, hN_scale = 1, TOL = 1E-4, MAX_ITER = 1000) {
+mlePossum = function(analysis_formula, family = poisson, error_formula, data, beta_init = "Zero", eta_init = "Zero", noSE = TRUE, analytical_SE = FALSE,
+                     hN_scale = 1, TOL = 1E-4, MAX_ITER = 1000) {
   ## Extract variable names from user-specified formulas
   Y = as.character(as.formula(analysis_formula))[2]
   X = as.character(as.formula(error_formula))[2]
@@ -280,26 +281,23 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data, be
                 converged_msg = CONVERGED_MSG))
   } else {
 
-    ## If analytical SE is preferred
-    if(analytical_SE){
+    ## If alternative SE is preferred
+    if(alternative_SE){
 
-      ### create extra placeholder variables used in vcov construction
-      Ci <- t(c(1,Xi,Zi)) #question: dim? should this be done for all i at once?
-      Di <- t(c(1,Xstari, Zi)) #same question
-      lambdai <- exp(sum(Ci * new_beta)) #should I use Ci transpose here?
-      mui <- exp(sum(Di * new_eta)) #should I use Di transpose here?
+      ### compute the Hessian
+      hessian <- numDeriv::hessian(func = loglik_mat,
+                        x = c(new_beta, new_eta),
+                        method = "Richardson",
+                        Y_name = Y,
+                        X_name = X,
+                        Z_name = Z,
+                        Xstar_name = X_unval,
+                        Q_name = "Validated",
+                        offset_name = offset,
+                        data = data,
+                        noFN = noFN,
+                        verbose = FALSE)
 
-      Estar <- 1 #replace me
-      Fstar <- 1 #replace me
-      Gstar <- 1 #replace me
-      Hstar <- 1 #replace me
-
-      ### create the E,F,G,H blocks of the Hessian
-      E <- Estar %*% Ci %*% t(Ci)
-      Fblock <- Fstar %*% Di %*% t(Ci)
-      G <- Gstar %*% Ci %*% t(Di)
-      H <- Hstar %*% Di %*% t(Di)
-      hessian <- c(E,Fblock,G,H) #replace me. will have to fill matrix accordingly.
 
       ### use the Hessian to compute the standard error
       cov <- solve(hessian) #invert Hessian for the vcov matrix at the MLE

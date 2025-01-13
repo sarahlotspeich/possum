@@ -13,6 +13,7 @@ mlePossum(
   beta_init = "Zero",
   eta_init = "Zero",
   noSE = TRUE,
+  analytical_SE = FALSE,
   hN_scale = 1,
   TOL = 1e-04,
   MAX_ITER = 1000
@@ -38,6 +39,8 @@ mlePossum(
 \item{TOL}{Tolerance between iterations in the EM algorithm used to define convergence.}
 
 \item{MAX_ITER}{Maximum number of iterations allowed in the EM algorithm.}
+
+\item{alternative_SE}{Indicator for whether alternative standard error should be calculated. Defaults to \code{alternative_SE = FALSE}}
 }
 \value{
 \item{coefficients}{dataframe with final coefficient and standard error estimates (where applicable) for the analysis model.}
