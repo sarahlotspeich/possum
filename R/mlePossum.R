@@ -45,6 +45,7 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
                x = sub(pattern = ".*\\(",
                        replacement = "",
                        x = setdiff(analysis_covar, c(X, Z))))
+  if(length(offset) == 0) offset = NULL ## fixes data typing issue if no offset
 
   # Prepare for algorithm ------------------------------------------------------
   data[, "Validated"] = as.numeric(!is.na(data[, X])) ## validation indicator
@@ -298,7 +299,7 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
                         noFN = noFN)
 
       ### use the Hessian to compute the standard error
-      cov <- solve(hessian) #invert Hessian for the vcov matrix at the MLE
+      cov <- solve(hessian * -1) #negate and invert Hessian for vcov @ MLE
       se <- sqrt(diag(cov)) #extract the standard errors
 
       SE_CONVERGED = !any(is.na(se))
