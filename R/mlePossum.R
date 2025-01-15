@@ -21,7 +21,9 @@
 #' \item{converged_msg}{(where applicable) description of non-convergence.}
 #' @export
 
-mlePossum = function(analysis_formula, family = poisson, error_formula, data, beta_init = "Zero", eta_init = "Zero", noSE = TRUE, analytical_SE = FALSE,
+mlePossum = function(analysis_formula, family = poisson, error_formula, data,
+                     beta_init = "Zero", eta_init = "Zero",
+                     noSE = TRUE, alternative_SE = FALSE,
                      hN_scale = 1, TOL = 1E-4, MAX_ITER = 1000) {
   ## Extract variable names from user-specified formulas
   Y = as.character(as.formula(analysis_formula))[2]

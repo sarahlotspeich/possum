@@ -13,7 +13,7 @@ mlePossum(
   beta_init = "Zero",
   eta_init = "Zero",
   noSE = TRUE,
-  analytical_SE = FALSE,
+  alternative_SE = FALSE,
   hN_scale = 1,
   TOL = 1e-04,
   MAX_ITER = 1000
@@ -34,13 +34,13 @@ mlePossum(
 
 \item{noSE}{Indicator for whether standard errors are desired. Defaults to \code{noSE = FALSE}.}
 
+\item{alternative_SE}{Indicator for whether alternative standard error should be calculated. Defaults to \code{alternative_SE = FALSE}}
+
 \item{hN_scale}{Size of the perturbation used in estimating the standard errors via profile likelihood. If none is supplied, default is \code{hN_scale = 1}.}
 
 \item{TOL}{Tolerance between iterations in the EM algorithm used to define convergence.}
 
 \item{MAX_ITER}{Maximum number of iterations allowed in the EM algorithm.}
-
-\item{alternative_SE}{Indicator for whether alternative standard error should be calculated. Defaults to \code{alternative_SE = FALSE}}
 }
 \value{
 \item{coefficients}{dataframe with final coefficient and standard error estimates (where applicable) for the analysis model.}
