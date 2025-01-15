@@ -20,7 +20,7 @@
 #' \item{se_converged}{indicator of standard error estimate convergence.}
 #' \item{converged_msg}{(where applicable) description of non-convergence.}
 #' @export
-
+#' @importFrom numDeriv hessian
 mlePossum = function(analysis_formula, family = poisson, error_formula, data,
                      beta_init = "Zero", eta_init = "Zero",
                      noSE = TRUE, alternative_SE = FALSE,
