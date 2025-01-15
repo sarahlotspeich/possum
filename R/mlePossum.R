@@ -287,19 +287,15 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
     if(alternative_SE){
 
       ### compute the Hessian
-      hessian <- numDeriv::hessian(func = loglik_mat,
+      hessian <- numDeriv::hessian(func = mle_loglik_nd,
                         x = c(new_beta, new_eta),
                         method = "Richardson",
-                        Y_name = Y,
-                        X_name = X,
-                        Z_name = Z,
-                        Xstar_name = X_unval,
-                        Q_name = "Validated",
-                        offset_name = offset,
-                        data = data,
-                        noFN = noFN,
-                        verbose = FALSE)
-
+                        dim_beta = length(new_beta),
+                        Y = Y, offset = offset, X_unval = X_unval,
+                        X = X, Z = Z,
+                        comp_dat_val = comp_dat_val,
+                        comp_dat_unval = comp_dat_unval,
+                        noFN = noFN)
 
       ### use the Hessian to compute the standard error
       cov <- solve(hessian) #invert Hessian for the vcov matrix at the MLE

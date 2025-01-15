@@ -6,9 +6,9 @@
 #'
 #' @param Y Column name with the outcome
 #' @param offset (Optional) Column name with the offset for \code{Y}. Default is \code{offset = 1}, no offset
-#' @param X_unval Column(s) with the unvalidated covariates 
-#' @param X Column(s) with the validated covariates 
-#' @param Z (Optional) Column(s) with additional error-free covariates 
+#' @param X_unval Column(s) with the unvalidated covariates
+#' @param X Column(s) with the validated covariates
+#' @param Z (Optional) Column(s) with additional error-free covariates
 #' @param comp_dat_val Dataset containing rows for validated subjects' data (a matrix)
 #' @param comp_dat_unval Augmented dataset containing rows for each combination of unvalidated subjects' data with values from Phase II (a matrix)
 #' @param beta Parameters for the analysis model (a column vector)
@@ -19,16 +19,16 @@
 mle_loglik = function(Y = NULL, offset = NULL, X_unval = NULL, X = NULL, Z = NULL, comp_dat_val, comp_dat_unval, beta, eta, noFN) {
   ##############################################################################
   # Save useful constants ------------------------------------------------------
-  N = max(comp_dat_unval[, "row_num"]) ## total sample size 
+  N = max(comp_dat_unval[, "row_num"]) ## total sample size
   n = max(comp_dat_val[, "row_num"]) ## validation sub-sample size
-  
+
   # Create combined dataset of validated and unvalidated -----------------------
-  comp_dat_all = rbind(comp_dat_val, 
+  comp_dat_all = rbind(comp_dat_val,
                        comp_dat_unval)
   ##############################################################################
   # Calculate probabilities ----------------------------------------------------
   ## Analysis model: P(Y|X) ----------------------------------------------------
-  ### mu = beta0 + beta1X + beta2Z + ... 
+  ### mu = beta0 + beta1X + beta2Z + ...
   mu_beta = as.numeric(cbind(int = 1, comp_dat_all[, c(X, Z)]) %*% beta)
   ### lambda = exp(beta0 + beta1X + beta2Z + ... )
   lambda = exp(mu_beta)
@@ -36,27 +36,27 @@ mle_loglik = function(Y = NULL, offset = NULL, X_unval = NULL, X = NULL, Z = NUL
   if (!is.null(offset)) {
     lambda = comp_dat_all[, offset] * lambda
   }
-  ### Calculate P(Y|X) from Poisson distribution 
-  pYgivX = dpois(x = comp_dat_all[, Y], 
+  ### Calculate P(Y|X) from Poisson distribution
+  pYgivX = dpois(x = comp_dat_all[, Y],
                  lambda = lambda)
   ##############################################################################
   ## Misclassification mechanism: P(X|X*) --------------------------------------
   if (noFN) { #### If one-sided errors, logistic regression on just X*=1 -----
-    #### mu = eta0 + eta1Z + ... 
+    #### mu = eta0 + eta1Z + ...
     mu_eta = as.numeric(cbind(int = 1, comp_dat_all[, Z]) %*% eta)
     #### Calculate P(X|X*=1,Z) from Bernoulli distribution -------------------
-    pXgivXstar = dbinom(x = comp_dat_all[, X], 
-                        size = 1, 
+    pXgivXstar = dbinom(x = comp_dat_all[, X],
+                        size = 1,
                         prob = 1 / (1 + exp(- mu_eta)))
     #### Force P(X=0|X*=0,Z)=1 and P(X=1|X*=0,Z)=0 for all Z -----------------
     pXgivXstar[which(comp_dat_all[, X_unval] == 0 & comp_dat_all[, X] == 0)] = 1
     pXgivXstar[which(comp_dat_all[, X_unval] == 0 & comp_dat_all[, X] == 1)] = 0
   } else { #### If two-sided errors, logistic regression on all rows ---------
-    #### mu = eta0 + eta1X* + eta2Z + ... 
+    #### mu = eta0 + eta1X* + eta2Z + ...
     mu_eta = as.numeric(cbind(int = 1, comp_dat_all[, c(X_unval, Z)]) %*% eta)
     #### Calculate P(X|X*,Z) from Bernoulli distribution ---------------------
-    pXgivXstar = dbinom(x = comp_dat_all[, X], 
-                        size = 1, 
+    pXgivXstar = dbinom(x = comp_dat_all[, X],
+                        size = 1,
                         prob = 1 / (1 + exp(- mu_eta)))
   }
   ##############################################################################
@@ -68,7 +68,84 @@ mle_loglik = function(Y = NULL, offset = NULL, X_unval = NULL, X = NULL, Z = NUL
   log_pYgivX = log(pYgivX[1:n])
   log_pYgivX[log_pYgivX == -Inf] = 0
   return_loglik = sum(log_pYgivX)
-  ## Sum over log{P(X|X*)} 
+  ## Sum over log{P(X|X*)}
+  log_pXgivXstar = log(pXgivXstar[1:n])
+  log_pXgivXstar[log_pXgivXstar == -Inf] = 0
+  return_loglik = return_loglik + sum(log_pXgivXstar)
+  ##############################################################################
+  # Log-likelihood contribution of unvalidated observations  -------------------
+  ## Marginalize out X: P(Y|X*) ------------------------------------------------
+  pYXgivXstar_unval = pYXgivXstar[-c(1:n)] ### remove validated observations (first n rows)
+  pYgivXstar_unval = pYXgivXstar_unval[1:(N - n)] + ### sum over P(Y,X=0|X*) (first N - n rows)
+    pYXgivXstar_unval[-c(1:(N - n))] ### and P(Y,X=1|X*) (last N - n rows)
+  ## Sum over log{P(Y|X*)}
+  log_pYgivXstar_unval = log(pYgivXstar_unval)
+  log_pYgivXstar_unval[log_pYgivXstar_unval == -Inf] = 0
+  return_loglik = return_loglik + sum(log_pYgivXstar_unval)
+  return(return_loglik)
+}
+
+mle_loglik_nd = function(beta_eta, dim_beta,
+                         Y = NULL, offset = NULL, X_unval = NULL, X = NULL, Z = NULL,
+                         comp_dat_val, comp_dat_unval, noFN) {
+  ##############################################################################
+  # Save useful constants ------------------------------------------------------
+
+  ## split parameters into analysis and error model parameters
+  beta <- beta_eta[1:dim_beta]
+  eta <- beta_eta[-c(1:dim_beta)]
+
+  ## save sample sizes
+  N = max(comp_dat_unval[, "row_num"]) ## total sample size
+  n = max(comp_dat_val[, "row_num"]) ## validation sub-sample size
+
+  # Create combined dataset of validated and unvalidated -----------------------
+  comp_dat_all = rbind(comp_dat_val,
+                       comp_dat_unval)
+  ##############################################################################
+  # Calculate probabilities ----------------------------------------------------
+  ## Analysis model: P(Y|X) ----------------------------------------------------
+  ### mu = beta0 + beta1X + beta2Z + ...
+  mu_beta = as.numeric(cbind(int = 1, comp_dat_all[, c(X, Z)]) %*% beta)
+  ### lambda = exp(beta0 + beta1X + beta2Z + ... )
+  lambda = exp(mu_beta)
+  ### If offset specified, lambda = offset x exp(beta0 + beta1X + beta2Z + ... )
+  if (!is.null(offset)) {
+    lambda = comp_dat_all[, offset] * lambda
+  }
+  ### Calculate P(Y|X) from Poisson distribution
+  pYgivX = dpois(x = comp_dat_all[, Y],
+                 lambda = lambda)
+  ##############################################################################
+  ## Misclassification mechanism: P(X|X*) --------------------------------------
+  if (noFN) { #### If one-sided errors, logistic regression on just X*=1 -----
+    #### mu = eta0 + eta1Z + ...
+    mu_eta = as.numeric(cbind(int = 1, comp_dat_all[, Z]) %*% eta)
+    #### Calculate P(X|X*=1,Z) from Bernoulli distribution -------------------
+    pXgivXstar = dbinom(x = comp_dat_all[, X],
+                        size = 1,
+                        prob = 1 / (1 + exp(- mu_eta)))
+    #### Force P(X=0|X*=0,Z)=1 and P(X=1|X*=0,Z)=0 for all Z -----------------
+    pXgivXstar[which(comp_dat_all[, X_unval] == 0 & comp_dat_all[, X] == 0)] = 1
+    pXgivXstar[which(comp_dat_all[, X_unval] == 0 & comp_dat_all[, X] == 1)] = 0
+  } else { #### If two-sided errors, logistic regression on all rows ---------
+    #### mu = eta0 + eta1X* + eta2Z + ...
+    mu_eta = as.numeric(cbind(int = 1, comp_dat_all[, c(X_unval, Z)]) %*% eta)
+    #### Calculate P(X|X*,Z) from Bernoulli distribution ---------------------
+    pXgivXstar = dbinom(x = comp_dat_all[, X],
+                        size = 1,
+                        prob = 1 / (1 + exp(- mu_eta)))
+  }
+  ##############################################################################
+  ## Joint conditional: P(Y,X|X*) ----------------------------------------------
+  pYXgivXstar = pYgivX * pXgivXstar
+  ##############################################################################
+  # Log-likelihood contribution of validated observations  ---------------------
+  ## Sum over log{P(Y|X)} for validated observations (first n rows)
+  log_pYgivX = log(pYgivX[1:n])
+  log_pYgivX[log_pYgivX == -Inf] = 0
+  return_loglik = sum(log_pYgivX)
+  ## Sum over log{P(X|X*)}
   log_pXgivXstar = log(pXgivXstar[1:n])
   log_pXgivXstar[log_pXgivXstar == -Inf] = 0
   return_loglik = return_loglik + sum(log_pXgivXstar)
