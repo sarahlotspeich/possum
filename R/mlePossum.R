@@ -291,7 +291,6 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
       CONVERGED_MSG = "Converged"
     }
   }
-  } 
   # ------------------------------------------------- Check convergence statuses
   ##############################################################################
   # Create list and return results ---------------------------------------------
