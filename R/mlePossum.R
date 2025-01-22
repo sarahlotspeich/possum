@@ -144,7 +144,7 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
   # Check if we can even do algorithm ------------------------------------------
   queried_ppv = sum(data[,X] == 1 & dat[,X_unval] == 1, na.rm = TRUE) /
     sum(dat[,X_unval] == 1 & !is.na(dat[,X]), na.rm = TRUE)
-  can_do <- queried_ppv == 1
+  can_do <- queried_ppv != 1
 
   if(can_do) {
   ## Begin algorithm -----------------------------------------------------------
@@ -284,7 +284,7 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
     vanilla_mod <- glm(formula = as.formula(analysis_formula),
                            family = family,
                            data = data) ## there is no error
-    return(list(coefficients = data.frame(coeff = vanilla_poisson$coefficients,
+    return(list(coefficients = data.frame(coeff = vanilla_mod$coefficients,
                                           se = sqrt(diag(summary(vanilla_mod)$cov.scaled))),
                 misclass_coefficients = data.frame(coeff = NA, se = NA),
                 vcov = summary(vanilla_mod)$cov.scaled,
