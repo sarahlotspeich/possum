@@ -143,7 +143,7 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
 
   # Check if we can even do algorithm ------------------------------------------
   queried_ppv = sum(data[,X] == 1 & data[,X_unval] == 1, na.rm = TRUE) /
-    sum(dat[,X_unval] == 1 & !is.na(data[,X]), na.rm = TRUE)
+    sum(data[,X_unval] == 1 & !is.na(data[,X]), na.rm = TRUE)
 
   ## If PPV among queried subset is almost perfect, just fit usual model -------
   if (round(queried_ppv, 3) == 1) {
