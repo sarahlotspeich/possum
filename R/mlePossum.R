@@ -142,14 +142,14 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
   it = 1
 
   # Check if we can even do algorithm ------------------------------------------
-  queried_ppv = sum(data[,X] == 1 & dat[,X_unval] == 1, na.rm = TRUE) /
-    sum(dat[,X_unval] == 1 & !is.na(dat[,X]), na.rm = TRUE)
-  
+  queried_ppv = sum(data[,X] == 1 & data[,X_unval] == 1, na.rm = TRUE) /
+    sum(dat[,X_unval] == 1 & !is.na(data[,X]), na.rm = TRUE)
+
   ## If PPV among queried subset is almost perfect, just fit usual model -------
   if (round(queried_ppv, 3) == 1) {
     vanilla_mod <- glm(formula = as.formula(analysis_formula),
                        family = family,
-                       data = data) 
+                       data = data)
     return(list(coefficients = data.frame(coeff = vanilla_mod$coefficients,
                                           se = sqrt(diag(summary(vanilla_mod)$cov.scaled))),
                 misclass_coefficients = data.frame(coeff = NA, se = NA),
@@ -157,7 +157,7 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
                 converged = NA,
                 se_converged = NA,
                 converged_msg = "Validated PPV = 1, standard GLM used "))
-  } 
+  }
 
   ## Otherwise, begin EM algorithm ---------------------------------------------
   while(it <= MAX_ITER & !CONVERGED) {
