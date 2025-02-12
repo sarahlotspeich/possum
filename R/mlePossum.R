@@ -252,7 +252,7 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
     new_beta = suppressWarnings(
       matrix(data = glm(formula = re_analysis_formula,
                         family = family,
-                        data = data.frame(comp_dat_all),
+                        data = data.frame(cbind(comp_dat_all, phi_aug)),
                         weights = phi_aug)$coefficients,
              ncol = 1)
     )
@@ -265,8 +265,8 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
       new_eta = suppressWarnings(
         matrix(data = glm(formula = re_error_formula,
                           family = binomial,
-                          data = data.frame(comp_dat_all)[which_unval_case, ],
-                          weights = phi_aug[which_unval_case])$coefficients,
+                          data = data.frame(cbind(comp_dat_all, phi_aug))[which_unval_case, ],
+                          weights = phi_aug)$coefficients,
                ncol = 1)
       )
     } else {
