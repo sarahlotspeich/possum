@@ -286,10 +286,10 @@ make_complete_data = function(data, analysis_formula, error_formula,
     data[, X] = x
   }
   comp_dat = model.matrix(object = analysis_formula, 
-                          data = data[rows, ])[, -1] ### Model matrix without intercept
+                          data = data[rows, ]) ### Model matrix incl. intercept
   comp_dat = cbind(comp_dat, 
                    model.matrix(object = error_formula, 
-                                data = data[rows, ])[, -1]) ### Model matrix without intercept
+                                data = data[rows, ])) ### Model matrix incl. intercept
   comp_dat = cbind(comp_dat, data[rows, c(Y, offset, "row_num")]) ### Bring in (Y, Offset, row_num)
   comp_dat = comp_dat[, unique(colnames(comp_dat))] ### Get rid of potential duplicate columns
   return(comp_dat)
