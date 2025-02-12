@@ -131,7 +131,7 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
                  data = comp_dat_val)
     prev_beta = beta0 = matrix(data = cc_fit$coefficients,
                                ncol = 1)
-    beta_cols = names(cc_fit$coefficients) ## column names, excl. intercept
+    beta_cols = names(cc_fit$coefficients) ## column names
   } 
   if(beta_init == "Zero") {
     prev_beta = beta0 = matrix(data = 0,
@@ -157,13 +157,13 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
                    family = "binomial",
                    data = subset_X_unval_one)
     } else {
-      cc_fit = glm(formula = as.formula(),
+      cc_fit = glm(formula = as.formula(re_error_formula),
                    family = "binomial",
                    data = comp_dat_val)
     }
     prev_eta = eta0 = matrix(cc_fit$coefficients,
                              ncol = 1)
-    eta_cols = names(cc_fit$coefficients) ## column names, excl. intercept
+    eta_cols = names(cc_fit$coefficients) ## column names
   } 
   if(eta_init == "Zero") {
     prev_eta = eta0 = matrix(data = 0,
