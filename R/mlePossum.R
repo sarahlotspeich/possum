@@ -296,16 +296,26 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
   ##############################################################################
   # Check convergence statuses -------------------------------------------------
   if(!CONVERGED) {
-    if(it > MAX_ITER) {
-      CONVERGED_MSG = "MAX_ITER reached"
-    }
-
-    return(list(coefficients = data.frame(coeff = NA, se = NA),
-                misclass_coefficients = data.frame(coeff = NA, se = NA),
+    ## Return final estimates and convergence information ----------------------
+    coeff_df = data.frame(coeff = NA,
+                          se = NA, 
+                          z = NA, 
+                          p = NA)
+    colnames(coeff_df) = c("Estimate", "Std. Error", "z value", "Pr(>|z|)")
+    
+    misclass_coeff_df = data.frame(coeff = NA,
+                                   se = NA, 
+                                   z = NA, 
+                                   p = NA)
+    colnames(misclass_coeff_df) = c("Estimate", "Std. Error", "z value", "Pr(>|z|)")
+    
+    return(list(coefficients = coeff_df,
+                misclass_coefficients = misclass_coeff_df,
                 vcov = NA,
                 converged = FALSE,
                 se_converged = NA,
                 converged_msg = "MAX_ITER reached"))
+    
   } else {
     ## Even if algorithm converged, check for fitted probabilities close to ----
     ## Zero or one with the etas at convergence --------------------------------
@@ -319,8 +329,21 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
   ##############################################################################
   # Create list and return results ---------------------------------------------
   if(noSE){
-    return(list(coefficients = data.frame(coeff = new_beta, se = NA),
-                misclass_coefficients = data.frame(coeff = new_eta, se = NA),
+    ## Return final estimates and convergence information ----------------------
+    coeff_df = data.frame(coeff = new_beta,
+                          se = NA, 
+                          z = NA, 
+                          p = NA)
+    colnames(coeff_df) = c("Estimate", "Std. Error", "z value", "Pr(>|z|)")
+    
+    misclass_coeff_df = data.frame(coeff = new_eta,
+                                   se = NA, 
+                                   z = NA, 
+                                   p = NA)
+    colnames(misclass_coeff_df) = c("Estimate", "Std. Error", "z value", "Pr(>|z|)")
+    
+    return(list(coefficients = coeff_df,
+                misclass_coefficients = misclass_coeff_df,
                 vcov = NA,
                 converged = CONVERGED,
                 se_converged = NA,
@@ -483,10 +506,22 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
     se_eta = se[-c(1:nrow(prev_beta))]
     }
     ## Return final estimates and convergence information ----------------------
-    return(list(coefficients = data.frame(coeff = new_beta,
-                                          se = se_beta),
-                misclass_coefficients = data.frame(coeff = new_eta,
-                                                   se = se_eta),
+    coeff_df = data.frame(coeff = new_beta,
+                          se = se_beta, 
+                          z = new_beta / se_beta, 
+                          p = 2 * pnorm(q = new_beta / se_beta, lower.tail = FALSE))
+    colnames(coeff_df) = c("Estimate", "Std. Error", "z value", "Pr(>|z|)")
+    
+    misclass_coeff_df = data.frame(coeff = new_eta,
+                          se = se_eta, 
+                          z = new_eta / se_eta, 
+                          p = 2 * pnorm(q = new_eta / se_eta, lower.tail = FALSE))
+    colnames(misclass_coeff_df) = c("Estimate", "Std. Error", "z value", "Pr(>|z|)")
+    
+    rownames(vcov) = colnames(vcov) = rownames(new_beta)
+    
+    return(list(coefficients = coeff_df,
+                misclass_coefficients = misclass_coeff_df,
                 vcov = cov,
                 converged = CONVERGED,
                 se_converged = SE_CONVERGED,
