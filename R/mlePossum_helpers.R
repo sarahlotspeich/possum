@@ -85,28 +85,30 @@ mle_loglik = function(Y = NULL, offset = NULL, X_unval = NULL, X = NULL, Z = NUL
   return(return_loglik)
 }
 
-mle_loglik_nd = function(beta_eta, dim_beta,
-                         Y = NULL, offset = NULL, X_unval = NULL, X = NULL, Z = NULL,
+mle_loglik_nd = function(beta_eta, beta_cols, eta_cols, 
+                         Y = NULL, offset = NULL, X_unval = NULL, X = NULL, 
                          comp_dat_val, comp_dat_unval, noFN) {
   ##############################################################################
   # Save useful constants ------------------------------------------------------
 
   ## split parameters into analysis and error model parameters
-  beta <- beta_eta[1:dim_beta]
-  eta <- beta_eta[-c(1:dim_beta)]
+  beta <- matrix(data = beta_eta[1:length(beta_cols)], 
+                 ncol = 1)
+  eta <- matrix(data = beta_eta[-c(1:length(beta_cols))], 
+                ncol = 1)
 
   ## save sample sizes
   N = max(comp_dat_unval[, "row_num"]) ## total sample size
   n = max(comp_dat_val[, "row_num"]) ## validation sub-sample size
 
   # Create combined dataset of validated and unvalidated -----------------------
-  comp_dat_all = rbind(comp_dat_val,
-                       comp_dat_unval)
+  comp_dat_all = data.matrix(rbind(comp_dat_val,
+                                   comp_dat_unval))
   ##############################################################################
   # Calculate probabilities ----------------------------------------------------
   ## Analysis model: P(Y|X) ----------------------------------------------------
   ### mu = beta0 + beta1X + beta2Z + ...
-  mu_beta = as.numeric(cbind(int = 1, comp_dat_all[, c(X, Z)]) %*% beta)
+  mu_beta = as.numeric(comp_dat_all[, beta_cols] %*% beta)
   ### lambda = exp(beta0 + beta1X + beta2Z + ... )
   lambda = exp(mu_beta)
   ### If offset specified, lambda = offset x exp(beta0 + beta1X + beta2Z + ... )
@@ -118,24 +120,17 @@ mle_loglik_nd = function(beta_eta, dim_beta,
                  lambda = lambda)
   ##############################################################################
   ## Misclassification mechanism: P(X|X*) --------------------------------------
+  #### mu = eta0 + eta1Z + ...
+  mu_eta = as.numeric(comp_dat_all[, eta_cols] %*% eta)
+  #### Calculate P(X|X*=1,Z) from Bernoulli distribution -------------------
+  pXgivXstar = dbinom(x = comp_dat_all[, X],
+                      size = 1,
+                      prob = 1 / (1 + exp(- mu_eta)))
   if (noFN) { #### If one-sided errors, logistic regression on just X*=1 -----
-    #### mu = eta0 + eta1Z + ...
-    mu_eta = as.numeric(cbind(int = 1, comp_dat_all[, Z]) %*% eta)
-    #### Calculate P(X|X*=1,Z) from Bernoulli distribution -------------------
-    pXgivXstar = dbinom(x = comp_dat_all[, X],
-                        size = 1,
-                        prob = 1 / (1 + exp(- mu_eta)))
     #### Force P(X=0|X*=0,Z)=1 and P(X=1|X*=0,Z)=0 for all Z -----------------
     pXgivXstar[which(comp_dat_all[, X_unval] == 0 & comp_dat_all[, X] == 0)] = 1
     pXgivXstar[which(comp_dat_all[, X_unval] == 0 & comp_dat_all[, X] == 1)] = 0
-  } else { #### If two-sided errors, logistic regression on all rows ---------
-    #### mu = eta0 + eta1X* + eta2Z + ...
-    mu_eta = as.numeric(cbind(int = 1, comp_dat_all[, c(X_unval, Z)]) %*% eta)
-    #### Calculate P(X|X*,Z) from Bernoulli distribution ---------------------
-    pXgivXstar = dbinom(x = comp_dat_all[, X],
-                        size = 1,
-                        prob = 1 / (1 + exp(- mu_eta)))
-  }
+  } 
   ##############################################################################
   ## Joint conditional: P(Y,X|X*) ----------------------------------------------
   pYXgivXstar = pYgivX * pXgivXstar
@@ -280,8 +275,7 @@ loglik_mat = function(beta_eta,
 }
 
 make_complete_data = function(data, analysis_formula, error_formula, 
-                              rows, Y, X,
-                              offset, x = NULL) {
+                              rows, Y, X, offset, x = NULL) {
   if (!is.null(x)) { ## If forcing a particular value of X
     data[, X] = x
   }
