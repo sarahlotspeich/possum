@@ -278,3 +278,19 @@ loglik_mat = function(beta_eta,
   if(verbose) {print(paste("Queried + Unqueried:", ll))}
   return(-ll) ## return (-1) x log-likelihood for maximization
 }
+
+make_complete_data = function(data, analysis_formula, error_formula, 
+                              rows, Y, X,
+                              offset, x = NULL) {
+  if (!is.null(x)) { ## If forcing a particular value of X
+    data[, X] = x
+  }
+  comp_dat = model.matrix(object = analysis_formula, 
+                          data = data[rows, ])[, -1] ### Model matrix without intercept
+  comp_dat = cbind(comp_dat, 
+                   model.matrix(object = error_formula, 
+                                data = data[rows, ])[, -1]) ### Model matrix without intercept
+  comp_dat = cbind(comp_dat, data[rows, c(Y, offset, "row_num")]) ### Bring in (Y, Offset, row_num)
+  comp_dat = comp_dat[, unique(colnames(comp_dat))] ### Get rid of potential duplicate columns
+  return(comp_dat)
+}
