@@ -24,7 +24,7 @@ mlePossum(
 
 \item{family}{analysis model family, to be passed through to \code{glm}. See \code{?glm} for options.}
 
-\item{error_formula}{misclassification model formula (or coercible to formula), a formula expression as for other regression models. The response should be the error-free version of the error-prone of the covariate.}
+\item{error_formula}{misclassification model formula (or coercible to formula), a formula expression as for other regression models. The response should be the error-free version of the error-prone of the covariate, and the first predictor should be the error-prone version.}
 
 \item{data}{dataset containing at least the variables included in \code{error_formula} and \code{analysis_formula}.}
 
