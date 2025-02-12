@@ -25,28 +25,34 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
                      beta_init = "Zero", eta_init = "Zero",
                      noSE = TRUE, alternative_SE = FALSE,
                      hN_scale = 1, TOL = 1E-4, MAX_ITER = 1000) {
-  ## Extract variable names from user-specified formulas
-  Y = as.character(as.formula(analysis_formula))[2]
-  X = as.character(as.formula(error_formula))[2]
-  analysis_covar = unlist(strsplit(x = gsub(pattern = " ",
-                                            replacement = "",
-                                            x = as.character(as.formula(analysis_formula))[3]),
-                                   split = "+",
-                                   fixed = TRUE))
-  error_covar = unlist(strsplit(x = gsub(pattern = " ",
-                                         replacement = "",
-                                         x = as.character(as.formula(error_formula))[3]),
-                                split = "+",
-                                fixed = TRUE))
+  ## Extract variable names from user-specified formulas + model matrices ------
+  ### Analysis model 
+  Y = as.character(as.formula(analysis_formula))[2] ### Outcome 
+  analysis_mat = model.matrix(object = analysis_formula, 
+                              data = data) ### Design matrix for analysis formula
+  analysis_covar = colnames(analysis_mat)[-1] ### Exclude intercept 
+  analysis_covar = analysis_covar[!grepl(pattern = ":", x = analysis_covar)] ### Exclude interactions (keep main effects for now)
+
+  ### Error model 
+  X = as.character(as.formula(error_formula))[2] ### Validated covariate
+  error_mat = model.matrix(object = error_formula, 
+                           data = data)
+  error_covar = colnames(error_mat)[-1] ### Exclude intercept 
+  error_covar = error_covar[!grepl(pattern = ":", x = error_covar)] ### Exclude interactions (keep main effects for now)
   X_unval = setdiff(error_covar, analysis_covar)
   Z = intersect(error_covar, analysis_covar)
+
+  ### Offset for the analysis model 
   offset = sub(pattern = "\\).*",
                replacement = "",
-               x = sub(pattern = ".*\\(",
+               x = sub(pattern = ".*offset\\(",
                        replacement = "",
-                       x = setdiff(analysis_covar, c(X, Z))))
+                       x = grep(pattern = "offset", 
+                                x = as.character(as.formula(analysis_formula)), 
+                                value = TRUE)))
+  offset = sub(pattern = "log\\(", replacement = "", x = offset) ### Check for log()
   if(length(offset) == 0) offset = NULL ## fixes data typing issue if no offset
-
+  
   # Prepare for algorithm ------------------------------------------------------
   data[, "Validated"] = as.numeric(!is.na(data[, X])) ## validation indicator
   N = nrow(data) ## total sample size (Phase I)
