@@ -30,18 +30,13 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
   Y = as.character(as.formula(analysis_formula))[2] ### Outcome 
   analysis_mat = model.matrix(object = analysis_formula, 
                               data = data) ### Design matrix for analysis formula
-  analysis_covar = colnames(analysis_mat)[-1] ### Exclude intercept 
-  analysis_covar = analysis_covar[!grepl(pattern = ":", x = analysis_covar)] ### Exclude interactions (keep main effects for now)
-
   ### Error model 
   X = as.character(as.formula(error_formula))[2] ### Validated covariate
   error_mat = model.matrix(object = error_formula, 
                            data = data)
   error_covar = colnames(error_mat)[-1] ### Exclude intercept 
-  error_covar = error_covar[!grepl(pattern = ":", x = error_covar)] ### Exclude interactions (keep main effects for now)
-  X_unval = setdiff(error_covar, analysis_covar)
-  Z = intersect(error_covar, analysis_covar)
-
+  X_unval = error_covar[1] 
+  
   ### Offset for the analysis model 
   offset = sub(pattern = "\\).*",
                replacement = "",
@@ -52,6 +47,22 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
                                 value = TRUE)))
   offset = sub(pattern = "log\\(", replacement = "", x = offset) ### Check for log()
   if(length(offset) == 0) offset = NULL ## fixes data typing issue if no offset
+  
+  ### Rewrite model formulas using column names from the model matrices --------
+  re_analysis_formula = paste0(Y, "~", 
+                               paste(colnames(analysis_mat)[-1], 
+                                     collapse = "+")) 
+  if (!is.null(offset)) {
+    re_analysis_formula = paste0(re_analysis_formula, "+", 
+                                 sub(pattern = ".*offset\\(",
+                                     replacement = "offset\\(",
+                                     x = grep(pattern = "offset", 
+                                              x = as.character(as.formula(analysis_formula)), 
+                                              value = TRUE)))
+  }
+  re_error_formula = paste0(X, "~", 
+                            paste(colnames(error_mat)[-1], 
+                                  collapse = "+")) 
   
   # Prepare for algorithm ------------------------------------------------------
   data[, "Validated"] = as.numeric(!is.na(data[, X])) ## validation indicator
@@ -68,21 +79,44 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
   data[, "row_num"] = 1:N
   ##############################################################################
   ## Save static (X*,X,Y,Z) for validated rows since they don't change ---------
-  comp_dat_val = data.matrix(data[c(1:n), c(Y, offset, X_unval, X, Z, "row_num")])
+  #comp_dat_val = data.matrix(data[c(1:n), c(Y, offset, X_unval, X, Z, "row_num")])
+  comp_dat_val = make_complete_data(data = data, analysis_formula = analysis_formula, 
+                                    error_formula = error_formula, 
+                                    rows = 1:n, 
+                                    Y = Y, 
+                                    X = X,
+                                    offset = offset)
 
   ## Create augmented (X*,x,Y,Z) for unvalidated rows --------------------------
   ### First (N-n) rows assume X = 0 --------------------------------------------
-  comp_dat0 = data.matrix(data[-c(1:n), c(Y, offset, X_unval, X, Z, "row_num")])
-  comp_dat0[, X] = 0
+  comp_dat0 = make_complete_data(data = data,
+                                 analysis_formula = analysis_formula, 
+                                 error_formula = error_formula, 
+                                 rows = -c(1:n), 
+                                 Y = Y, 
+                                 X = X,
+                                 offset = offset, 
+                                 x = 0)
+  # comp_dat0 = data.matrix(data[-c(1:n), c(Y, offset, X_unval, X, Z, "row_num")])
+  # comp_dat0[, X] = 0
   ### Last (N-n) rows assume X = 1 ---------------------------------------------
-  comp_dat1 = data.matrix(data[-c(1:n), c(Y, offset, X_unval, X, Z, "row_num")])
-  comp_dat1[, X] = 1
+  comp_dat1 = make_complete_data(data = data,
+                                 analysis_formula = analysis_formula, 
+                                 error_formula = error_formula, 
+                                 rows = -c(1:n), 
+                                 Y = Y, 
+                                 X = X,
+                                 offset = offset, 
+                                 x = 1)
+  # comp_dat1 = data.matrix(data[-c(1:n), c(Y, offset, X_unval, X, Z, "row_num")])
+  # comp_dat1[, X] = 1
   ### Put them together --------------------------------------------------------
-  comp_dat_unval = rbind(comp_dat0,
-                         comp_dat1)
+  comp_dat_unval = data.matrix(rbind(comp_dat0,
+                                     comp_dat1))
 
   ## Create augmented "complete" dataset of validated and unvalidated ----------
-  comp_dat_all = rbind(comp_dat_val, comp_dat_unval)
+  comp_dat_all = data.matrix(rbind(comp_dat_val, comp_dat_unval))
+  
   ##############################################################################
   ## Initialize analysis model parameters (beta) -------------------------------
   ### If invalid beta0 specified, default to beta0 = "Zero" --------------------
@@ -91,53 +125,50 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
     beta_init = "Zero"
   }
   ### Set initial values for beta ----------------------------------------------
+  if(beta_init == "Complete-data") {
+    cc_fit = glm(formula = as.formula(re_analysis_formula),
+                 family = family,
+                 data = comp_dat_val)
+    prev_beta = beta0 = matrix(data = cc_fit$coefficients,
+                               ncol = 1)
+    beta_cols = names(cc_fit$coefficients) ## column names, excl. intercept
+  } 
   if(beta_init == "Zero") {
     prev_beta = beta0 = matrix(data = 0,
-                               nrow = (length(c(X, Z)) + 1),
+                               nrow = nrow(prev_beta),
                                ncol = 1)
-  } else if(beta_init == "Complete-data") {
-    prev_beta = beta0 = matrix(glm(formula = as.formula(analysis_formula),
-                                   family = family,
-                                   data = data[c(1:n), ])$coefficients,
-                               ncol = 1)
-  }
+  }  
   ### Set initial values for eta -----------------------------------------------
   #### If one-sided (no false negatives), X_unval is not included in this model
   if (noFN) {
-    subset_X_unval_one = data[data[, X_unval] == 1, ]
+    subset_X_unval_one = comp_dat_val[comp_dat_val[, X_unval] == 1, ]
     message("Error model was modified to exclude unvalidated covariate, since errors are one-sided (false positives only).")
-    error_model_covar = setdiff(x = error_covar, y = X_unval)
-    if (length(error_model_covar) == 0) {
-      error_formula = paste(X, "~ 1")
+    if (sum(!grepl(pattern = X_unval, x = error_covar)) == 0) {
+      re_error_formula = paste(X, "~ 1")
     } else {
-      error_formula = paste(X, "~", paste(Z, collapse = " + "))
+      re_error_formula = paste(X, "~", 
+                               paste(error_covar[!grepl(pattern = X_unval, x = error_covar)], 
+                                     collapse = " + "))
     }
-  }
+  } 
+  if(eta_init == "Complete-data") {
+    if (noFN) {
+      cc_fit = glm(formula = as.formula(re_error_formula),
+                   family = "binomial",
+                   data = subset_X_unval_one)
+    } else {
+      cc_fit = glm(formula = as.formula(),
+                   family = "binomial",
+                   data = comp_dat_val)
+    }
+    prev_eta = eta0 = matrix(cc_fit$coefficients,
+                             ncol = 1)
+    eta_cols = names(cc_fit$coefficients) ## column names, excl. intercept
+  } 
   if(eta_init == "Zero") {
-    if (noFN) {
-      #### If one-sided (no false negatives), X is not included in this model --
-      #### Force P(X=0|X*=0,Z) = 1 and only model P(X|X*=1,Z) ------------------
-      prev_eta = eta0 = matrix(data = 0,
-                               nrow = (length(Z) + 1),
-                               ncol = 1)
-    } else {
-      prev_eta = eta0 = matrix(data = 0,
-                               nrow = (length(c(X, Z)) + 1),
-                               ncol = 1)
-    }
-  } else if(eta_init == "Complete-data") {
-    if (noFN) {
-      prev_eta = eta0 = matrix(glm(formula = as.formula(error_formula),
-                                   family = "binomial",
-                                   data = data[c(1:n), ],
-                                   subset = data[c(1:n), X_unval] == 1)$coefficients,
-                               ncol = 1)
-    } else {
-      prev_eta = eta0 = matrix(glm(formula = as.formula(error_formula),
-                                   family = "binomial",
-                                   data = data[c(1:n), ])$coefficients,
-                               ncol = 1)
-    }
+    prev_eta = eta0 = matrix(data = 0,
+                             nrow = nrow(prev_eta),
+                             ncol = 1)
   }
   # ------------------------------------------------------ Prepare for algorithm
   ##############################################################################
@@ -153,16 +184,16 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
 
   ## If PPV among queried subset is almost perfect, just fit usual model -------
   if (round(queried_ppv, 3) == 1) {
-    vanilla_mod <- glm(formula = as.formula(analysis_formula),
-                       family = family,
-                       data = data)
-    return(list(coefficients = data.frame(coeff = vanilla_mod$coefficients,
-                                          se = sqrt(diag(summary(vanilla_mod)$cov.scaled))),
+    # vanilla_mod <- glm(formula = as.formula(analysis_formula),
+    #                    family = family,
+    #                    data = data)
+    return(list(coefficients = data.frame(coeff = NA,
+                                          se = NA),
                 misclass_coefficients = data.frame(coeff = NA, se = NA),
                 vcov = vcov(vanilla_mod),
                 converged = NA,
                 se_converged = NA,
-                converged_msg = "Validated PPV = 1, standard GLM used "))
+                converged_msg = "Validated PPV = 1, use standard GLM "))
   }
 
   ## Otherwise, begin EM algorithm ---------------------------------------------
@@ -171,7 +202,7 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
     ## Update the phi_xi = P(X=x|Yi,Xi*,Z) for unvalidated subjects ------------
     ### Analysis model: P(Y|X,Z) -----------------------------------------------
     #### mu = beta0 + beta1X + beta2Z + ...
-    mu_beta = as.numeric(cbind(int = 1, comp_dat_unval[, c(X, Z)]) %*% prev_beta)
+    mu_beta = as.numeric(comp_dat_unval[, beta_cols] %*% prev_beta)
     #### lambda = exp(beta0 + beta1X + beta2Z + ... )
     lambda = exp(mu_beta)
     #### If offset specified, lambda = offset x exp(beta0 + beta1X + beta2Z + ... )
@@ -183,29 +214,19 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
                    lambda = lambda)
     ############################################################################
     ### Misclassification mechanism: P(X|X*,Z) ---------------------------------
+    #### mu = eta0 + eta1X* + eta2Z + ...
+    mu_eta = as.numeric(comp_dat_unval[, eta_cols] %*% prev_eta)
+    #### Calculate P(X|X*,Z) from Bernoulli distribution ---------------------
+    pXgivXstar = dbinom(x = comp_dat_unval[, X],
+                        size = 1,
+                        prob = 1 / (1 + exp(- mu_eta)))
+    #### Save min/max P(X|X,Z) to check for numerical 0/1 later --------------
+    min_pXgivXstar = min(pXgivXstar)
+    max_pXgivXstar = max(pXgivXstar)
     if (noFN) { #### If one-sided errors, logistic regression on just X*=1 -----
-      #### mu = eta0 + eta1Z + ...
-      mu_eta = as.numeric(cbind(int = 1, comp_dat_unval[, Z]) %*% prev_eta)
-      #### Calculate P(X|X*=1,Z) from Bernoulli distribution -------------------
-      pXgivXstar = dbinom(x = comp_dat_unval[, X],
-                          size = 1,
-                          prob = 1 / (1 + exp(- mu_eta)))
-      #### Save min/max P(X|X*=1,Z) to check for numerical 0/1 later -----------
-      min_pXgivXstar = min(pXgivXstar[which(comp_dat_unval[, X_unval] == 1)])
-      max_pXgivXstar = max(pXgivXstar[which(comp_dat_unval[, X_unval] == 1)])
       #### Force P(X=0|X*=0,Z)=1 and P(X=1|X*=0,Z)=0 for all Z -----------------
       pXgivXstar[which(comp_dat_unval[, X_unval] == 0 & comp_dat_unval[, X] == 0)] = 1
       pXgivXstar[which(comp_dat_unval[, X_unval] == 0 & comp_dat_unval[, X] == 1)] = 0
-    } else { #### If two-sided errors, logistic regression on all rows ---------
-      #### mu = eta0 + eta1X* + eta2Z + ...
-      mu_eta = as.numeric(cbind(int = 1, comp_dat_unval[, c(X_unval, Z)]) %*% prev_eta)
-      #### Calculate P(X|X*,Z) from Bernoulli distribution ---------------------
-      pXgivXstar = dbinom(x = comp_dat_unval[, X],
-                          size = 1,
-                          prob = 1 / (1 + exp(- mu_eta)))
-      #### Save min/max P(X|X,Z) to check for numerical 0/1 later --------------
-      min_pXgivXstar = min(pXgivXstar)
-      max_pXgivXstar = max(pXgivXstar)
     }
     ############################################################################
     ## Estimate conditional expectations ---------------------------------------
@@ -229,9 +250,9 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
     # M Step -------------------------------------------------------------------
     ## Update beta using weighted Poisson regression ---------------------------
     new_beta = suppressWarnings(
-      matrix(data = glm(formula = analysis_formula,
+      matrix(data = glm(formula = re_analysis_formula,
                         family = family,
-                        data = data.frame(cbind(comp_dat_all, phi_aug)),
+                        data = data.frame(comp_dat_all),
                         weights = phi_aug)$coefficients,
              ncol = 1)
     )
@@ -242,17 +263,17 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
     if (noFN) {
       which_unval_case = which(comp_dat_all[, X_unval] == 1)
       new_eta = suppressWarnings(
-        matrix(data = glm(formula = error_formula,
+        matrix(data = glm(formula = re_error_formula,
                           family = binomial,
-                          data = data.frame(cbind(comp_dat_all, phi_aug))[which_unval_case, ],
-                          weights = phi_aug)$coefficients,
+                          data = data.frame(comp_dat_all)[which_unval_case, ],
+                          weights = phi_aug[which_unval_case])$coefficients,
                ncol = 1)
       )
     } else {
       new_eta = suppressWarnings(
-        matrix(data = glm(formula = error_formula,
+        matrix(data = glm(formula = re_error_formula,
                           family = binomial,
-                          data = data.frame(cbind(comp_dat_all, phi_aug)),
+                          data = data.frame(comp_dat_all),
                           weights = phi_aug)$coefficients,
                ncol = 1)
       )
@@ -268,12 +289,9 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
     prev_beta = new_beta
     prev_eta = new_eta
   }
-  rownames(new_beta) = c("Intercept", X, Z)
-  if(noFN) {
-    rownames(new_eta) = c("Intercept", Z)
-  } else {
-    rownames(new_eta) = c("Intercept", X_unval, Z)
-  }
+  ### Name rows of coefficients before preparing to return (below) 
+  rownames(new_beta) = beta_cols 
+  rownames(new_eta) = eta_cols
   # ----------------------------------- Estimate beta and eta using EM algorithm
   ##############################################################################
   # Check convergence statuses -------------------------------------------------
@@ -310,21 +328,24 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
   } else {
 
     ## If alternative SE is preferred
-    if(alternative_SE){
+    if(alternative_SE) {
 
       ### compute the Hessian
       hessian <- numDeriv::hessian(func = mle_loglik_nd,
-                        x = c(new_beta, new_eta),
-                        method = "Richardson",
-                        dim_beta = length(new_beta),
-                        Y = Y, offset = offset, X_unval = X_unval,
-                        X = X, Z = Z,
-                        comp_dat_val = comp_dat_val,
-                        comp_dat_unval = comp_dat_unval,
-                        noFN = noFN)
+                                   x = c(as.vector(new_beta), as.vector(new_eta)),
+                                   method = "Richardson",
+                                   beta_cols = beta_cols, 
+                                   eta_cols = eta_cols, 
+                                   Y = Y, 
+                                   offset = offset, 
+                                   X_unval = X_unval,
+                                   X = X, 
+                                   comp_dat_val = comp_dat_val,
+                                   comp_dat_unval = comp_dat_unval,
+                                   noFN = noFN)
 
       ### use the Hessian to compute the standard error
-      cov <- solve(hessian * -1) #negate and invert Hessian for vcov @ MLE
+      cov <- solve(hessian * - 1) #negate and invert Hessian for vcov @ MLE
       se <- sqrt(diag(cov)) #extract the standard errors
 
       SE_CONVERGED = !any(is.na(se))
@@ -341,9 +362,7 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
                   converged = CONVERGED,
                   se_converged = SE_CONVERGED,
                   converged_msg = CONVERGED_MSG))
-    }
-
-    else{
+    } else {
     ## Calculate Cov(beta, eta) using numerical differentiation ----------------
     hN = hN_scale * N ^ ( - 1 / 2) # perturbation ------------------------------
 
@@ -352,11 +371,12 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
                            offset = offset,
                            X_unval = X_unval,
                            X = X,
-                           Z = Z,
                            comp_dat_val = comp_dat_val,
                            comp_dat_unval = comp_dat_unval,
                            beta = new_beta,
                            eta = new_eta,
+                           beta_cols = beta_cols, 
+                           eta_cols = eta_cols,
                            noFN = noFN)
 
     ## Calculate I(beta, eta) using numerical differentiation ------------------
@@ -376,11 +396,12 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
                                   offset = offset,
                                   X_unval = X_unval,
                                   X = X,
-                                  Z = Z,
                                   comp_dat_val = comp_dat_val,
                                   comp_dat_unval = comp_dat_unval,
                                   beta = as.matrix(theta_pert[c(1:nrow(new_beta))]),
                                   eta = as.matrix(theta_pert[-c(1:nrow(new_beta))]),
+                                  beta_cols = beta_cols, 
+                                  eta_cols = eta_cols,
                                   noFN = noFN)
       single_pert[i] = od_loglik_pert
     }
@@ -420,11 +441,12 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
                                       offset = offset,
                                       X_unval = X_unval,
                                       X = X,
-                                      Z = Z,
                                       comp_dat_val = comp_dat_val,
                                       comp_dat_unval = comp_dat_unval,
                                       beta = as.matrix(theta_pert[c(1:nrow(new_beta))]),
                                       eta = as.matrix(theta_pert[-c(1:nrow(new_beta))]),
+                                      beta_cols = beta_cols, 
+                                      eta_cols = eta_cols,
                                       noFN = noFN)
           double_pert[r, c] = double_pert[c, r] = od_loglik_pert
           #### Un-perturb the cth element in theta before incrementing c
