@@ -290,7 +290,7 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
     prev_eta = new_eta
   }
   ### Name rows of coefficients before preparing to return (below) 
-  rownames(new_beta) = beta_cols 
+  beta_cols = beta_cols 
   rownames(new_eta) = eta_cols
   # ----------------------------------- Estimate beta and eta using EM algorithm
   ##############################################################################
@@ -375,16 +375,6 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
       ### Split standard into the analysis and error model parameters ---------
       se_beta = se[c(1:nrow(prev_beta))]
       se_eta = se[-c(1:nrow(prev_beta))]
-
-      #return final estimates and convergence information
-      return(list(coefficients = data.frame(coeff = new_beta,
-                                            se = se_beta),
-                  misclass_coefficients = data.frame(coeff = new_eta,
-                                                     se = se_eta),
-                  vcov = cov,
-                  converged = CONVERGED,
-                  se_converged = SE_CONVERGED,
-                  converged_msg = CONVERGED_MSG))
     } else {
     ## Calculate Cov(beta, eta) using numerical differentiation ----------------
     hN = hN_scale * N ^ ( - 1 / 2) # perturbation ------------------------------
@@ -510,15 +500,17 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
                           se = se_beta, 
                           z = new_beta / se_beta, 
                           p = 2 * pnorm(q = new_beta / se_beta, lower.tail = FALSE))
+    rownames(coeff_df) = beta_cols
     colnames(coeff_df) = c("Estimate", "Std. Error", "z value", "Pr(>|z|)")
     
     misclass_coeff_df = data.frame(coeff = new_eta,
                           se = se_eta, 
                           z = new_eta / se_eta, 
                           p = 2 * pnorm(q = new_eta / se_eta, lower.tail = FALSE))
+    rownames(misclass_coeff_df) = eta_cols
     colnames(misclass_coeff_df) = c("Estimate", "Std. Error", "z value", "Pr(>|z|)")
     
-    rownames(vcov) = colnames(vcov) = rownames(new_beta)
+    rownames(cov) = colnames(cov) = c(beta_cols, eta_cols)
     
     return(list(coefficients = coeff_df,
                 misclass_coefficients = misclass_coeff_df,
