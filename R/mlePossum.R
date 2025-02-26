@@ -499,14 +499,14 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
     coeff_df = data.frame(coeff = new_beta,
                           se = se_beta, 
                           z = new_beta / se_beta, 
-                          p = 2 * pnorm(q = new_beta / se_beta, lower.tail = FALSE))
+                          p = 2 * pnorm(q = abs(new_beta / se_beta), lower.tail = FALSE))
     rownames(coeff_df) = beta_cols
     colnames(coeff_df) = c("Estimate", "Std. Error", "z value", "Pr(>|z|)")
     
     misclass_coeff_df = data.frame(coeff = new_eta,
                           se = se_eta, 
                           z = new_eta / se_eta, 
-                          p = 2 * pnorm(q = new_eta / se_eta, lower.tail = FALSE))
+                          p = 2 * pnorm(q = abs(new_eta / se_eta), lower.tail = FALSE))
     rownames(misclass_coeff_df) = eta_cols
     colnames(misclass_coeff_df) = c("Estimate", "Std. Error", "z value", "Pr(>|z|)")
     
