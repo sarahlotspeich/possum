@@ -127,17 +127,18 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
     beta_init = "Zero"
   }
   ### Set initial values for beta ----------------------------------------------
+  #### Take some information from the complete-case fit
+  cc_fit = glm(formula = as.formula(re_analysis_formula),
+               family = tolower(family),
+               data = comp_dat_val)
+  beta_cols = names(cc_fit$coefficients) ## column names
   if(beta_init == "Complete-data") {
-    cc_fit = glm(formula = as.formula(re_analysis_formula),
-                 family = family,
-                 data = comp_dat_val)
     prev_beta = beta0 = matrix(data = cc_fit$coefficients,
                                ncol = 1)
-    beta_cols = names(cc_fit$coefficients) ## column names
   } 
   if(beta_init == "Zero") {
     prev_beta = beta0 = matrix(data = 0,
-                               nrow = nrow(prev_beta),
+                               nrow = length(beta_cols),
                                ncol = 1)
   }  
   ### Set initial values for eta -----------------------------------------------
@@ -153,16 +154,17 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
                                      collapse = " + "))
     }
   } 
+  #### Take some information from the complete-case fit
+  if (noFN) {
+    cc_fit = glm(formula = as.formula(re_error_formula),
+                 family = "binomial",
+                 data = subset_X_unval_one)
+  } else {
+    cc_fit = glm(formula = as.formula(re_error_formula),
+                 family = "binomial",
+                 data = comp_dat_val)
+  }
   if(eta_init == "Complete-data") {
-    if (noFN) {
-      cc_fit = glm(formula = as.formula(re_error_formula),
-                   family = "binomial",
-                   data = subset_X_unval_one)
-    } else {
-      cc_fit = glm(formula = as.formula(re_error_formula),
-                   family = "binomial",
-                   data = comp_dat_val)
-    }
     prev_eta = eta0 = matrix(cc_fit$coefficients,
                              ncol = 1)
     eta_cols = names(cc_fit$coefficients) ## column names
@@ -187,7 +189,7 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
   ## If PPV among queried subset is almost perfect, just fit usual model -------
   if (round(queried_ppv, 3) == 1) {
     # vanilla_mod <- glm(formula = as.formula(analysis_formula),
-    #                    family = family,
+    #                    family = tolower(family),
     #                    data = data)
     return(list(coefficients = data.frame(coeff = NA,
                                           se = NA),
@@ -253,7 +255,7 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
     ## Update beta using weighted Poisson regression ---------------------------
     new_beta = suppressWarnings(
       matrix(data = glm(formula = re_analysis_formula,
-                        family = family,
+                        family = tolower(family),
                         data = data.frame(cbind(comp_dat_all, phi_aug)),
                         weights = phi_aug)$coefficients,
              ncol = 1)
