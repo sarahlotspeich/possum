@@ -164,14 +164,14 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
                  family = "binomial",
                  data = comp_dat_val)
   }
+  eta_cols = names(cc_fit$coefficients) ## column names
   if(eta_init == "Complete-data") {
     prev_eta = eta0 = matrix(cc_fit$coefficients,
                              ncol = 1)
-    eta_cols = names(cc_fit$coefficients) ## column names
   } 
   if(eta_init == "Zero") {
     prev_eta = eta0 = matrix(data = 0,
-                             nrow = nrow(prev_eta),
+                             nrow = length(eta_cols),
                              ncol = 1)
   }
   # ------------------------------------------------------ Prepare for algorithm
