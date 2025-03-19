@@ -80,7 +80,8 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
   ##############################################################################
   ## Save static (X*,X,Y,Z) for validated rows since they don't change ---------
   #comp_dat_val = data.matrix(data[c(1:n), c(Y, offset, X_unval, X, Z, "row_num")])
-  comp_dat_val = make_complete_data(data = data, analysis_formula = analysis_formula, 
+  comp_dat_val = make_complete_data(data = data, 
+                                    analysis_formula = analysis_formula, 
                                     error_formula = error_formula, 
                                     rows = 1:n, 
                                     Y = Y, 
@@ -113,7 +114,8 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
   ### Put them together --------------------------------------------------------
   comp_dat_unval = data.matrix(rbind(comp_dat0,
                                      comp_dat1))
-
+  colnames(comp_dat_unval) = colnames(comp_dat_val) ## Coerce colnames to match
+  
   ## Create augmented "complete" dataset of validated and unvalidated ----------
   comp_dat_all = data.matrix(rbind(comp_dat_val, comp_dat_unval))
   
