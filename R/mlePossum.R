@@ -129,7 +129,7 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
   ### Set initial values for beta ----------------------------------------------
   #### Take some information from the complete-case fit
   cc_fit = glm(formula = as.formula(re_analysis_formula),
-               family = tolower(family),
+               family = family,
                data = comp_dat_val)
   beta_cols = names(cc_fit$coefficients) ## column names
   if(beta_init == "Complete-data") {
@@ -255,7 +255,7 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
     ## Update beta using weighted Poisson regression ---------------------------
     new_beta = suppressWarnings(
       matrix(data = glm(formula = re_analysis_formula,
-                        family = tolower(family),
+                        family = family,
                         data = data.frame(cbind(comp_dat_all, phi_aug)),
                         weights = phi_aug)$coefficients,
              ncol = 1)
