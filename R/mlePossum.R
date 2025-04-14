@@ -277,7 +277,7 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
       new_eta = suppressWarnings(
         matrix(data = glm(formula = re_error_formula,
                           family = binomial,
-                          data = data.frame(comp_dat_all),
+                          data =  data.frame(cbind(comp_dat_all, phi_aug)),
                           weights = phi_aug)$coefficients,
                ncol = 1)
       )
