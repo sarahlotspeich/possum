@@ -25,6 +25,9 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
                      beta_init = "Zero", eta_init = "Zero",
                      noSE = TRUE, alternative_SE = FALSE,
                      hN_scale = 1, TOL = 1E-4, MAX_ITER = 1000) {
+  ## Convert data --> data.frame (in case a tibble, etc. was supplied) ---------
+  data = data.frame(data)
+		
   ## Extract variable names from user-specified formulas + model matrices ------
   ### Analysis model
   Y = as.character(as.formula(analysis_formula))[2] ### Outcome
