@@ -1,15 +1,14 @@
-#' Sieve maximum likelihood estimation for Poisson regression problems with covariate misclassification
-#' This function returns the maximum likelihood estimates (MLEs) for the Poisson regression model with covariate misclassification from Mullan et al. (2024+)
+#' Sieve maximum likelihood estimation for negative binomial regression problems with covariate measurement error
+#' This function returns the sieve maximum likelihood estimates (SMLEs) for the negative binomial regression model with covariate measurement error from Lotspeich et al. (2025+)
 #'
-#' @param analysis_formula analysis model formula (or coercible to formula), a formula expression as for other regression models. The response should be the Poisson model outcome, and, if needed, the offset can be provided as an \code{offset()} term.
-#' @param family analysis model family, to be passed through to \code{glm}. See \code{?glm} for options.
+#' @param analysis_formula analysis model formula (or coercible to formula), a formula expression as for other regression models. The response should be the negative binomial model outcome.
 #' @param error_formula formula, covariate error model formula (or coercible to formula), a formula expression as for other regression models. The response should be the error-free version of the error-prone of the covariate, and the covariate should be the names of the B-spline columns.
 #' @param data dataset containing at least the variables included in \code{error_formula} and \code{analysis_formula}.
-#' @param beta_init Initial values used to fit \code{analysis_formula}. Choices include (1) \code{"Zero"} (non-informative starting values, the default) or (2) \code{"Complete-data"} (estimated based on validated data only).
-#' @param noSE Indicator for whether standard errors are desired. Defaults to \code{noSE = FALSE}.
-#' @param hN_scale Size of the perturbation used in estimating the standard errors via profile likelihood. If none is supplied, default is \code{hN_scale = 1}.
-#' @param TOL Tolerance between iterations in the EM algorithm used to define convergence.
-#' @param MAX_ITER Maximum number of iterations allowed in the EM algorithm.
+#' @param no_se Indicator for whether standard errors are desired. Defaults to \code{no_se = FALSE}.
+#' @param pert_scale Size of the perturbation used in estimating the standard errors via profile likelihood. If none is supplied, default is \code{pert_scale = 1}.
+#' @param tol Tolerance between iterations in the EM algorithm used to define convergence.
+#' @param max_iter Maximum number of iterations allowed in the EM algorithm.
+#' @param output character, level of fitted model output to be returned. Defaults to \code{output = "coeff"}, but \code{output = "all"} is also possible.
 #' @return
 #' \item{coefficients}{dataframe with final coefficient and standard error estimates (where applicable) for the analysis model.}
 #' \item{vcov}{variance-covariance matrix for \code{coefficients} (where applicable).}
@@ -17,14 +16,13 @@
 #' \item{se_converged}{indicator of standard error estimate convergence.}
 #' \item{converged_msg}{(where applicable) description of non-convergence.}
 #' @export
-#' @importFrom numDeriv hessian
 #' @importFrom MASS glm.nb
-smlePossum_nb = function(analysis_formula, error_formula, data,
-                         beta_init = "Zero", noSE = TRUE, hN_scale = 1, TOL = 1E-4, MAX_ITER = 1000) {
+smlePossum_nb = function(analysis_formula, error_formula, data, no_se = TRUE, pert_scale = 1,
+                         tol = 1E-4, max_iter = 1000, output = "coeff") {
   ##############################################################################
   # Extract variable names from user-specified formulas ------------------------
   ## Transform to formulas -----------------------------------------------------
-  analysis_formula = as.formula(analysis_formula) 
+  analysis_formula = as.formula(analysis_formula)
   error_formula = as.formula(error_formula)
   ## Outcome model -------------------------------------------------------------
   Y = as.character(analysis_formula)[2] ## outcome
@@ -43,7 +41,7 @@ smlePossum_nb = function(analysis_formula, error_formula, data,
                             fixed = TRUE))
   ## Extract analysis model matrix (complete cases) for structure --------------
   analysis_mat = model.matrix(object = analysis_formula,
-                              data = data) 
+                              data = data)
   ### Rewrite model formulas using column names from the model matrices --------
   re_analysis_formula = paste0(Y, "~",
                                paste(colnames(analysis_mat)[-1],
@@ -62,7 +60,7 @@ smlePossum_nb = function(analysis_formula, error_formula, data,
   sn = ncol(data[, Bspline])
   if(0 %in% colSums(data[c(1:n), Bspline])) {
     warning("Empty sieve in validated data. Reconstruct B-spline basis and try again.", call. = FALSE)
-    if(output == "logORs") {
+    if(output == "coeff") {
       return(list(model_coeff = data.frame(coeff = NA, se = NA),
                   vcov = NA,
                   converged = NA,
@@ -83,21 +81,21 @@ smlePossum_nb = function(analysis_formula, error_formula, data,
   x_obs = data.frame(unique(data[1:n, c(X_val)]))
   x_obs = data.frame(x_obs[order(x_obs[, 1]), ])
   m = nrow(x_obs)
-  x_obs_stacked = do.call(what = rbind, 
-                          args = replicate(n = (N - n), 
-                                           expr = x_obs, 
+  x_obs_stacked = do.call(what = rbind,
+                          args = replicate(n = (N - n),
+                                           expr = x_obs,
                                            simplify = FALSE))
   x_obs_stacked = data.frame(x_obs_stacked[order(x_obs_stacked[, 1]), ])
   colnames(x_obs) = colnames(x_obs_stacked) = c(X_val)
   ## Save static (X*,X,Y,C) since they don't change ----------------------------
   comp_dat_val = data[c(1:n), c(Y, X_val, C, Bspline)]
-  comp_dat_val = merge(x = comp_dat_val, 
-                       y = data.frame(x_obs, k = 1:m), 
+  comp_dat_val = merge(x = comp_dat_val,
+                       y = data.frame(x_obs, k = 1:m),
                        all.x = TRUE)
-  comp_dat_val = cbind(comp_dat_val, int = 1) ### add intercept column 
+  comp_dat_val = cbind(comp_dat_val, int = 1) ### add intercept column
   comp_dat_val = comp_dat_val[, c("int", Y, X_val, C, Bspline, "k")]
   comp_dat_val = data.matrix(comp_dat_val)
-  
+
   # (m x n)xd vectors of each (one column per person, one row per x) -----------
   comp_dat_unval = suppressWarnings(
     data.matrix(
@@ -106,42 +104,22 @@ smlePossum_nb = function(analysis_formula, error_formula, data,
             k = rep(seq(1, m), each = (N - n)))
     )
   )
-  comp_dat_unval = cbind(comp_dat_unval, int = 1) ### add intercept column 
+  comp_dat_unval = cbind(comp_dat_unval, int = 1) ### add intercept column
   comp_dat_unval = comp_dat_unval[, c("int", Y, X_val, C, Bspline, "k")]
   comp_dat_all = rbind(comp_dat_val, comp_dat_unval)
   ##############################################################################
   # Initialize analysis model parameters (beta) --------------------------------
-  ## If invalid beta_init specified, default to beta0 = "Zero" -----------------
-  if(!(beta_init %in% c("Zero", "Complete-data"))) {
-    message("Invalid starting values for analysis model provided. Non-informative zeros assumed.")
-    beta_init = "Zero"
-  }
-  ## Set initial values for beta -----------------------------------------------
-  # #### Take some information from the complete-case fit (Poisson)
-  # cc_fit = glm(formula = as.formula(re_analysis_formula),
-  #              data = data.frame(comp_dat_val))
-  # cc_fit = glm.nb(formula = as.formula(re_analysis_formula),
-  #                 data = data.frame(comp_dat_val))
-  # beta_cols = names(cc_fit$coefficients) ## column names
-  # if(beta_init == "Complete-data") {
-  #   prev_beta = beta0 = matrix(data = cc_fit$coefficients,
-  #                              ncol = 1)
-  # }
+  ## Set initial values for beta and theta -------------------------------------
   beta_cols = c("int", X_val, C)
-  if(beta_init == "Zero") {
-    prev_beta = beta0 = matrix(data = 0,
-                               nrow = length(beta_cols),
-                               ncol = 1)
-    prev_theta = 1E-3
-  }
+  prev_beta = beta0 = matrix(data = 0,
+                             nrow = length(beta_cols),
+                             ncol = 1)
+  prev_theta = 1E-3
   ### Set initial values for B-spline coefficients {p_kj} ----------------------
-  p_val_num = rowsum(x = comp_dat_val[, Bspline], 
-                     group = comp_dat_val[, "k"], 
+  p_val_num = rowsum(x = comp_dat_val[, Bspline],
+                     group = comp_dat_val[, "k"],
                      reorder = TRUE)
   prev_p = p0 =  t(t(p_val_num) / colSums(p_val_num))
-  
-  theta_design_mat = cbind(int = 1, 
-                           comp_dat_all[, c(beta_cols)])
   ##############################################################################
   # Estimate beta, k, and p_kj and eta using EM algorithm ----------------------
   ## Set parameters for algorithm convergence ----------------------------------
@@ -149,18 +127,18 @@ smlePossum_nb = function(analysis_formula, error_formula, data,
   CONVERGED_MSG = "Unknown"
   it = 1
   ## Otherwise, begin EM algorithm ---------------------------------------------
-  while(it <= MAX_ITER & !CONVERGED) {
+  while(it <= max_iter & !CONVERGED) {
     # E Step -------------------------------------------------------------------
     ## Update the phi_xi = P(X=x|Yi,Xi*,Z) for unvalidated subjects ------------
     ### Analysis model: P(Y|X,Z) -----------------------------------------------
     #### mu = exp(beta0 + beta1X + beta2Z + ) ...
     mu_beta = exp(as.numeric(comp_dat_unval[, beta_cols] %*% prev_beta))
     #### Calculate P(Y|X,Z) from negative binomial distribution ----------------
-    pYgivX = dnbinom(x = comp_dat_unval[, Y], 
-                     size = prev_theta, 
+    pYgivX = dnbinom(x = comp_dat_unval[, Y],
+                     size = prev_theta,
                      prob = (prev_theta / (mu_beta + prev_theta)))
     ### Error mechanism: P(X|X*,Z) ---------------------------------------------
-    pX = prev_p[rep(seq(1, m), each = (N - n)), ] * 
+    pX = prev_p[rep(seq(1, m), each = (N - n)), ] *
       comp_dat_unval[, Bspline]
     ############################################################################
     ## Estimate conditional expectations ---------------------------------------
@@ -189,8 +167,8 @@ smlePossum_nb = function(analysis_formula, error_formula, data,
                       ncol = 1)
     new_theta = new_fit$theta
     ## Check for beta convergence ----------------------------------------------
-    beta_conv = abs(new_beta - prev_beta) < TOL
-    theta_conv = abs(new_theta - prev_theta) < TOL
+    beta_conv = abs(new_beta - prev_beta) < tol
+    theta_conv = abs(new_theta - prev_theta) < tol
     ############################################################################
     ## Update {p_kj} --------------------------------------------------
     ### Update numerators by summing u_t over i = 1, ..., N -----------
@@ -198,7 +176,7 @@ smlePossum_nb = function(analysis_formula, error_formula, data,
       rowsum(psi_t, group = rep(seq(1, m), each = (N - n)), reorder = TRUE)
     new_p = t(t(new_p_num) / colSums(new_p_num))
     ### Check for convergence ---------------------------------------
-    p_conv = abs(new_p - prev_p) < TOL
+    p_conv = abs(new_p - prev_p) < tol
     ############################################################################
     # Check for global convergence ---------------------------------------------
     all_conv = c(beta_conv, theta_conv, p_conv)
@@ -212,7 +190,7 @@ smlePossum_nb = function(analysis_formula, error_formula, data,
   ### Name rows of coefficients before preparing to return (below)
   new_coeff = c(new_beta, new_theta)
   names(new_coeff) = c(beta_cols, "dispersion")
-  
+
   # ----------------------------------- Estimate beta and eta using EM algorithm
   ##############################################################################
   # Check convergence statuses -------------------------------------------------
@@ -228,7 +206,7 @@ smlePossum_nb = function(analysis_formula, error_formula, data,
                 vcov = NA,
                 converged = FALSE,
                 se_converged = NA,
-                converged_msg = "MAX_ITER reached"))
+                converged_msg = "max_iter reached"))
 
   } else {
     CONVERGED_MSG = "Converged"
@@ -236,166 +214,184 @@ smlePossum_nb = function(analysis_formula, error_formula, data,
   # ------------------------------------------------- Check convergence statuses
   ##############################################################################
   # Create list and return results ---------------------------------------------
-  if(noSE){
-    ## Return final estimates and convergence information ----------------------
+  ## Predict X | X*, C (if requested) ------------------------------------------
+  if (output == "all") {
+    ## Create matrix with columns: (x_j) x (p_kj)
+    xj_wide = matrix(data = unlist(x_obs),
+                     nrow = nrow(new_p),
+                     ncol = ncol(new_p),
+                     byrow = FALSE)
+    xj_phat = xj_wide * new_p
+
+    ## Calculate predicted X given error-prone X* and Z
+    xhat = data[, X_val] ### initialize with validated X (when non-missing)
+    for (i in which(is.na(xhat))) {
+      xhat[i] = smle_predict_x(row_data = data[i, ],
+                               bspline_coeff = xj_phat)
+    }
+  }
+  ## Calculate SE (if requested) and return ------------------------------------
+  if(no_se){
+    ## Build table of outcome model coefficients -------------------------------
     coeff_df = data.frame(coeff = new_coeff,
                           se = NA,
                           z = NA,
                           p = NA)
     colnames(coeff_df) = c("Estimate", "Std. Error", "z value", "Pr(>|z|)")
 
-    return(list(coefficients = coeff_df,
-                vcov = NA,
-                converged = CONVERGED,
-                se_converged = NA,
-                converged_msg = CONVERGED_MSG))
+    ## Return, depending on output preference ----------------------------------
+    if(output == "coeff") {
+      ## Return coefficients ---------------------------------------------------
+      return(list(coefficients = coeff_df,
+                  vcov = matrix(data = NA,
+                                nrow = nrow(coeff_df),
+                                ncol = nrow(coeff_df),
+                  converged = CONVERGED,
+                  se_converged = NA,
+                  converged_msg = CONVERGED_MSG))
+    } else {
+      ## Calculate l(beta, theta, p) -------------------------------------------
+      od_loglik_theta =  smlePossum_negbin_od_ll(N = N,
+                                                 n = n,
+                                                 Y = Y,
+                                                 beta_cols = beta_cols,
+                                                 Bspline = Bspline,
+                                                 comp_dat_all = comp_dat_all,
+                                                 beta = new_beta,
+                                                 theta = new_theta,
+                                                 p = new_p)
+      ## Return coefficients, B-spline coefficients, predictions ---------------
+      return(list(model_coeff = data.frame(coeff = new_theta,
+                                           se = NA),
+                  bspline_coeff = cbind(x_obs, new_p),
+                  vcov = matrix(data = NA,
+                                nrow = length(new_theta),
+                                ncol = length(new_theta)),
+                  predicted = xhat[order(data$orig_row)],
+                  converged = CONVERGED,
+                  se_converged = NA,
+                  converged_msg = CONVERGED_MSG,
+                  iterations = it,
+                  od_loglik_at_conv = od_loglik_theta))
+    }
   } else {
+    # Estimate Cov(theta) using profile likelihood -----------------------------
+    h_N = pert_scale * N ^ ( - 1 / 2) # perturbation ---------------------------
+    ## Calculate l(beta, theta, p) ---------------------------------------------
+    od_loglik_theta =  smlePossum_negbin_od_ll(N = N,
+                                               n = n,
+                                               Y = Y,
+                                               beta_cols = beta_cols,
+                                               Bspline = Bspline,
+                                               comp_dat_all = comp_dat_all,
+                                               beta = new_beta,
+                                               theta = new_theta,
+                                               p = new_p)
+    ## Setup information matrix with l(beta, theta, p) -------------------------
+    I_theta = matrix(data = od_loglik_theta,
+                     nrow = (nrow(new_beta) + 1),
+                     ncol = (nrow(new_beta) + 1))
+    ## Calculate single perturbation profile likelihoods pl(beta, theta, p) ----
+    single_pert_theta = sapply(X = seq(1, ncol(I_theta)),
+                               FUN = pl_theta,
+                               theta = new_theta,
+                               h_N = h_N,
+                               N = N,
+                               n = n,
+                               Y = Y,
+                               X_val = X_val,
+                               C = C,
+                               Bspline = Bspline,
+                               comp_dat_all = comp_dat_all,
+                               p0 = new_p,
+                               p_val_num = p_val_num,
+                               tol = tol,
+                               max_iter = max_iter)
 
-    ## If alternative SE is preferred
-    if(alternative_SE) {
-
-      ### compute the Hessian
-      hessian <- numDeriv::hessian(func = mle_loglik_nd,
-                                   x = c(as.vector(new_beta), as.vector(new_eta)),
-                                   method = "Richardson",
-                                   beta_cols = beta_cols,
-                                   eta_cols = eta_cols,
-                                   Y = Y,
-                                   offset = offset,
-                                   X_unval = X_unval,
-                                   X = X,
-                                   comp_dat_val = comp_dat_val,
-                                   comp_dat_unval = comp_dat_unval,
-                                   noFN = noFN)
-
-      ### use the Hessian to compute the standard error
-      cov <- solve(hessian * - 1) #negate and invert Hessian for vcov @ MLE
-      se <- sqrt(diag(cov)) #extract the standard errors
-
-      SE_CONVERGED = !any(is.na(se))
-      ### Split standard into the analysis and error model parameters ---------
-      se_beta = se[c(1:nrow(prev_beta))]
-      se_eta = se[-c(1:nrow(prev_beta))]
+    if (any(is.na(single_pert_theta))) {
+      I_theta = matrix(data = NA,
+                       nrow = nrow(new_theta),
+                       ncol = nrow(new_theta))
+      SE_CONVERGED = FALSE
     } else {
-    ## Calculate Cov(beta, eta) using numerical differentiation ----------------
-    hN = hN_scale * N ^ ( - 1 / 2) # perturbation ------------------------------
-
-    ## Calculate l(beta, eta) --------------------------------------------------
-    od_loglik = mle_loglik(Y = Y,
-                           offset = offset,
-                           X_unval = X_unval,
-                           X = X,
-                           comp_dat_val = comp_dat_val,
-                           comp_dat_unval = comp_dat_unval,
-                           beta = new_beta,
-                           eta = new_eta,
-                           beta_cols = beta_cols,
-                           eta_cols = eta_cols,
-                           noFN = noFN)
-
-    ## Calculate I(beta, eta) using numerical differentiation ------------------
-    theta = rbind(new_beta, new_eta) ### create combined theta = (beta, eta)
-    I = matrix(data = od_loglik,
-               nrow = nrow(theta),
-               ncol = nrow(theta))
-
-    ### Compute log-likelihoods after single perturbations of beta and eta -----
-    single_pert = vector(length = ncol(I))
-    for (i in 1:length(single_pert)) {
-      #### Define perturbed theta vector
-      theta_pert = theta
-      theta_pert[i] = theta_pert[i] + hN
-      #### Calculate log-likelihood with perturbed theta vector
-      od_loglik_pert = mle_loglik(Y = Y,
-                                  offset = offset,
-                                  X_unval = X_unval,
-                                  X = X,
-                                  comp_dat_val = comp_dat_val,
-                                  comp_dat_unval = comp_dat_unval,
-                                  beta = as.matrix(theta_pert[c(1:nrow(new_beta))]),
-                                  eta = as.matrix(theta_pert[-c(1:nrow(new_beta))]),
-                                  beta_cols = beta_cols,
-                                  eta_cols = eta_cols,
-                                  noFN = noFN)
-      single_pert[i] = od_loglik_pert
+      spt_wide = matrix(data = rep(c(single_pert_theta),
+                                   times = ncol(I_theta)),
+                        ncol = ncol(I_theta),
+                        byrow = FALSE)
+      #for the each kth row of single_pert_theta add to the kth row / kth column of I_theta
+      I_theta = I_theta - spt_wide - t(spt_wide)
+      SE_CONVERGED = TRUE
     }
 
-    ### Check for any elements that didn't converge ----------------------------
-    if (any(is.na(single_pert))) {
-      I = matrix(data = NA,
-                 nrow = nrow(I),
-                 ncol = nrow(I))
-    } else {
-      ### Create wide version of single perturbations --------------------------
-      single_pert_wide = matrix(data = rep(x = single_pert,
-                                           times = ncol(I)),
-                                ncol = ncol(I),
-                                byrow = FALSE)
-
-      ### Using single_pert_wide, subtract the kth single perturbation from ----
-      #### the kth row and kth column of the information matrix ----------------
-      I = I - single_pert_wide - t(single_pert_wide)
-
-      ### Compute log-likelihoods after double perturbations of beta and eta ---
-      #### Create matrix of zeros for them (to be added to I_beta) -------------
-      double_pert = matrix(data = 0,
-                           nrow = nrow(I),
-                           ncol = ncol(I))
-      #### Loop over the rows and columns to fill double_pert ------------------
-      for (r in 1:nrow(double_pert)) {
-        #### First perturb the rth element in theta
-        theta_pert = theta
-        theta_pert[r] = theta_pert[r] + hN
-        #### Then loop over further perturbing all elements in beta
-        for (c in r:ncol(double_pert)) {
-          #### Further perturb the cth element in theta
-          theta_pert[c] = theta_pert[c] + hN
-          #### Calculate log-likelihood with perturbed theta vector
-          od_loglik_pert = mle_loglik(Y = Y,
-                                      offset = offset,
-                                      X_unval = X_unval,
-                                      X = X,
-                                      comp_dat_val = comp_dat_val,
-                                      comp_dat_unval = comp_dat_unval,
-                                      beta = as.matrix(theta_pert[c(1:nrow(new_beta))]),
-                                      eta = as.matrix(theta_pert[-c(1:nrow(new_beta))]),
-                                      beta_cols = beta_cols,
-                                      eta_cols = eta_cols,
-                                      noFN = noFN)
-          double_pert[r, c] = double_pert[c, r] = od_loglik_pert
-          #### Un-perturb the cth element in theta before incrementing c
-          theta_pert[c] = theta_pert[c] - hN
-        }
+    for (c in 1:ncol(I_theta)) {
+      pert_theta = new_theta
+      pert_theta[c] = pert_theta[c] + h_N
+      double_pert_theta = sapply(X = seq(c, ncol(I_theta)),
+                                 FUN = pl_theta,
+                                 theta = pert_theta,
+                                 h_N = h_N,
+                                 N = N,
+                                 n = n,
+                                 Y = Y,
+                                 X_val = X_val,
+                                 C = C,
+                                 Bspline = Bspline,
+                                 comp_dat_all = comp_dat_all,
+                                 p0 = new_p,
+                                 p_val_num = p_val_num,
+                                 max_iter = max_iter,
+                                 tol = tol)
+      dpt = matrix(data = 0,
+                   nrow = nrow(I_theta),
+                   ncol = ncol(I_theta))
+      dpt[c,c] = double_pert_theta[1] #Put double on the diagonal
+      if(c < ncol(I_theta)) {
+        ## And fill the others in on the cth row/ column
+        dpt[c, -(1:c)] = dpt[-(1:c), c] = double_pert_theta[-1]
       }
-
-      ### Add double perturbations to matrix of single perturbations -----------
-      I = I + double_pert
+      I_theta = I_theta + dpt
     }
 
-    ### Re-scale matrix of derivatives by the squared size of perturbation -----
-    I = - hN ^ (- 2) * I
+    I_theta = h_N ^ (- 2) * I_theta
 
-    cov = tryCatch(expr = solve(I),
-                   error = function(err) {
-                     matrix(data = NA,
-                            nrow = nrow(I),
-                            ncol = ncol(I))
-                     }
-                   )
-    ## ---------------- Calculate Cov(beta, eta) using numerical differentiation
-    ############################################################################
-    ## Take square root of the diagonal elements to get standard errors --------
-    se = tryCatch(expr = sqrt(diag(cov)),
-                  warning = function(w) {
-                    matrix(data = NA,
-                           nrow = nrow(I))
-                    }
-                  )
-    SE_CONVERGED = !any(is.na(se))
-    ### Split them into the analysis and error model parameters ----------------
-    se_beta = se[c(1:nrow(prev_beta))]
-    se_eta = se[-c(1:nrow(prev_beta))]
+    cov_theta = tryCatch(expr = - solve(I_theta),
+                         error = function(err) {
+                           matrix(data = NA,
+                                  nrow = nrow(I_theta),
+                                  ncol = ncol(I_theta))
+                         }
+    )
+    # ------------------------- Estimate Cov(theta) using profile likelihood
+    # if(any(diag(cov_theta) < 0)) {
+    #   warning("Negative variance estimate. Increase the pert_scale parameter and repeat variance estimation.")
+    #   SE_CONVERGED = FALSE
+    # }
+    se_theta = tryCatch(expr = sqrt(diag(cov_theta)),
+                        warning = function(w) {
+                          matrix(NA, nrow = nrow(prev_theta))
+                        }
+    )
+    if (any(is.na(se_theta))) { SE_CONVERGED = FALSE} else { TRUE }
+    if(output == "coeff") {
+      return(list(model_coeff = data.frame(coeff = new_theta,
+                                           se = se_theta),
+                  vcov = cov_theta,
+                  converged = CONVERGED,
+                  se_converged = SE_CONVERGED,
+                  converged_msg = CONVERGED_MSG))
+    } else {
+      return(list(model_coeff = data.frame(coeff = new_theta,
+                                           se = se_theta),
+                  bspline_coeff = cbind(x_obs, new_p),
+                  vcov = cov_theta,
+                  predicted = xhat[order(data$orig_row)],
+                  converged = CONVERGED,
+                  se_converged = SE_CONVERGED,
+                  converged_msg = CONVERGED_MSG,
+                  iterations = it,
+                  od_loglik_at_conv = od_loglik_theta))
     }
+
     ## Return final estimates and convergence information ----------------------
     coeff_df = data.frame(coeff = new_beta,
                           se = se_beta,
