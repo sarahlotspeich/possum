@@ -128,68 +128,42 @@ smlePossum_nb = function(analysis_formula, error_formula, data, no_se = TRUE, pe
   it = 1
   ## Otherwise, begin EM algorithm ---------------------------------------------
   while(it <= max_iter & !CONVERGED) {
-    # E Step -------------------------------------------------------------------
-    ## Update the phi_xi = P(X=x|Yi,Xi*,Z) for unvalidated subjects ------------
-    ### Analysis model: P(Y|X,Z) -----------------------------------------------
-    #### mu = exp(beta0 + beta1X + beta2Z + ) ...
-    mu_beta = exp(as.numeric(comp_dat_unval[, beta_cols] %*% prev_beta))
-    #### Calculate P(Y|X,Z) from negative binomial distribution ----------------
-    pYgivX = dnbinom(x = comp_dat_unval[, Y],
-                     size = prev_theta,
-                     prob = (prev_theta / (mu_beta + prev_theta)))
-    ### Error mechanism: P(X|X*,Z) ---------------------------------------------
-    pX = prev_p[rep(seq(1, m), each = (N - n)), ] *
-      comp_dat_unval[, Bspline]
     ############################################################################
-    ## Estimate conditional expectations ---------------------------------------
-    psi_num = c(pYgivX) * pX
-    ### Update denominator ------------------------------------------
-    #### Sum up all rows per id (e.g. sum over xk) ------------------
-    psi_denom = rowsum(psi_num, group = rep(seq(1, (N - n)), times = m))
-    #### Then sum over the sn splines -------------------------------
-    psi_denom = rowSums(psi_denom)
-    #### Avoid NaN resulting from dividing by 0 ---------------------
-    psi_denom[psi_denom == 0] = 1
-    ### And divide them! --------------------------------------------
-    psi_t = psi_num / psi_denom
-    ### Update the w_kyi for unvalidated subjects -------------------
-    ### by summing across the splines/ columns of psi_t -------------
-    w_t = rowSums(psi_t)
-    #### Add indicators for validated rows -------------------------------------
-    phi_aug = c(rep(x = 1, times = n), w_t)
+    # E Step -------------------------------------------------------------------
+    E_step_res = E_step_nb(prev_beta = prev_beta,
+                           prev_theta = prev_theta,
+                           Y = Y,
+                           beta_cols = beta_cols,
+                           prev_p = prev_p,
+                           Bspline = Bspline,
+                           comp_dat_unval = comp_dat_unval,
+                           m = m,
+                           N = N,
+                           n = n)
     ############################################################################
     # M Step -------------------------------------------------------------------
-    ## Update beta using weighted Poisson regression ---------------------------
-    new_fit = glm.nb(formula = re_analysis_formula,
-                     data = data.frame(cbind(comp_dat_all, phi_aug)),
-                     weights = phi_aug)
-    new_beta = matrix(data = new_fit$coefficients,
-                      ncol = 1)
-    new_theta = new_fit$theta
-    ## Check for beta convergence ----------------------------------------------
-    beta_conv = abs(new_beta - prev_beta) < tol
-    theta_conv = abs(new_theta - prev_theta) < tol
-    ############################################################################
-    ## Update {p_kj} --------------------------------------------------
-    ### Update numerators by summing u_t over i = 1, ..., N -----------
-    new_p_num = p_val_num +
-      rowsum(psi_t, group = rep(seq(1, m), each = (N - n)), reorder = TRUE)
-    new_p = t(t(new_p_num) / colSums(new_p_num))
-    ### Check for convergence ---------------------------------------
-    p_conv = abs(new_p - prev_p) < tol
+    M_step_res = M_step_nb(phi_aug = E_step_res$phi_aug,
+                           psi_t = E_step_res$psi_t,
+                           re_analysis_formula = re_analysis_formula,
+                           comp_dat_all = comp_dat_all,
+                           prev_beta = prev_beta,
+                           prev_theta = prev_theta,
+                           prev_p = prev_p,
+                           m = m,
+                           N = N,
+                           n = n)
     ############################################################################
     # Check for global convergence ---------------------------------------------
-    all_conv = c(beta_conv, theta_conv, p_conv)
-    CONVERGED = mean(all_conv) == 1
+    CONVERGED = M_step_res$prop_conv == 1
     # Update values for next iteration  ----------------------------------------
     it = it + 1
-    prev_beta = new_beta
-    prev_theta = new_theta
-    prev_p = new_p
+    prev_beta = M_step_res$new_beta
+    prev_theta = M_step_res$new_theta
+    prev_p = M_step_res$new_p
   }
   ### Name rows of coefficients before preparing to return (below)
-  new_coeff = c(new_beta, new_theta)
-  names(new_coeff) = c(beta_cols, "dispersion")
+  new_coeff = c(M_step_res$new_beta, M_step_res$new_theta)
+  names(new_coeff) = c(beta_cols, "Dispersion")
 
   # ----------------------------------- Estimate beta and eta using EM algorithm
   ##############################################################################
@@ -218,10 +192,10 @@ smlePossum_nb = function(analysis_formula, error_formula, data, no_se = TRUE, pe
   if (output == "all") {
     ## Create matrix with columns: (x_j) x (p_kj)
     xj_wide = matrix(data = unlist(x_obs),
-                     nrow = nrow(new_p),
-                     ncol = ncol(new_p),
+                     nrow = nrow(M_step_res$new_p),
+                     ncol = ncol(M_step_res$new_p),
                      byrow = FALSE)
-    xj_phat = xj_wide * new_p
+    xj_phat = xj_wide * M_step_res$new_p
 
     ## Calculate predicted X given error-prone X* and Z
     xhat = data[, X_val] ### initialize with validated X (when non-missing)
@@ -245,176 +219,157 @@ smlePossum_nb = function(analysis_formula, error_formula, data, no_se = TRUE, pe
       return(list(coefficients = coeff_df,
                   vcov = matrix(data = NA,
                                 nrow = nrow(coeff_df),
-                                ncol = nrow(coeff_df),
+                                ncol = nrow(coeff_df)),
                   converged = CONVERGED,
                   se_converged = NA,
                   converged_msg = CONVERGED_MSG))
     } else {
       ## Calculate l(beta, theta, p) -------------------------------------------
-      od_loglik_theta =  smlePossum_negbin_od_ll(N = N,
-                                                 n = n,
-                                                 Y = Y,
-                                                 beta_cols = beta_cols,
-                                                 Bspline = Bspline,
-                                                 comp_dat_all = comp_dat_all,
-                                                 beta = new_beta,
-                                                 theta = new_theta,
-                                                 p = new_p)
+      od_loglik_conv =  smlePossum_negbin_od_ll(N = N,
+                                                n = n,
+                                                Y = Y,
+                                                beta_cols = beta_cols,
+                                                Bspline = Bspline,
+                                                comp_dat_all = comp_dat_all,
+                                                beta = M_step_res$new_beta,
+                                                theta = M_step_res$new_theta,
+                                                p = M_step_res$new_p)
       ## Return coefficients, B-spline coefficients, predictions ---------------
-      return(list(model_coeff = data.frame(coeff = new_theta,
-                                           se = NA),
-                  bspline_coeff = cbind(x_obs, new_p),
+      return(list(coefficients = coeff_df,
+                  bspline_coefficients = cbind(x_obs, M_step_res$new_p),
                   vcov = matrix(data = NA,
-                                nrow = length(new_theta),
-                                ncol = length(new_theta)),
+                                nrow = length(new_coeff),
+                                ncol = length(new_coeff)),
                   predicted = xhat[order(data$orig_row)],
                   converged = CONVERGED,
                   se_converged = NA,
                   converged_msg = CONVERGED_MSG,
                   iterations = it,
-                  od_loglik_at_conv = od_loglik_theta))
+                  od_loglik_at_conv = od_loglik_conv))
     }
   } else {
     # Estimate Cov(theta) using profile likelihood -----------------------------
     h_N = pert_scale * N ^ ( - 1 / 2) # perturbation ---------------------------
     ## Calculate l(beta, theta, p) ---------------------------------------------
-    od_loglik_theta =  smlePossum_negbin_od_ll(N = N,
-                                               n = n,
-                                               Y = Y,
-                                               beta_cols = beta_cols,
-                                               Bspline = Bspline,
-                                               comp_dat_all = comp_dat_all,
-                                               beta = new_beta,
-                                               theta = new_theta,
-                                               p = new_p)
-    ## Setup information matrix with l(beta, theta, p) -------------------------
-    I_theta = matrix(data = od_loglik_theta,
-                     nrow = (nrow(new_beta) + 1),
-                     ncol = (nrow(new_beta) + 1))
-    ## Calculate single perturbation profile likelihoods pl(beta, theta, p) ----
-    single_pert_theta = sapply(X = seq(1, ncol(I_theta)),
-                               FUN = pl_theta,
-                               theta = new_theta,
+    od_loglik_conv = smlePossum_negbin_od_ll(N = N,
+                                             n = n,
+                                             Y = Y,
+                                             beta_cols = beta_cols,
+                                             Bspline = Bspline,
+                                             comp_dat_all = comp_dat_all,
+                                             beta = M_step_res$new_beta,
+                                             theta = M_step_res$new_theta,
+                                             p = M_step_res$new_p)
+    ## Setup information matrix with l(beta, theta) ----------------------------
+    I_coeff = matrix(data = od_loglik_conv,
+                     nrow = length(new_coeff),
+                     ncol = length(new_coeff))
+    ## Calculate single perturbation profile likelihoods pl(beta, theta) -------
+    single_pert_theta = sapply(X = seq(1, ncol(I_coeff)),
+                               FUN = smlePossum_negbin_pl,
+                               beta_theta = new_coeff,
                                h_N = h_N,
                                N = N,
                                n = n,
                                Y = Y,
-                               X_val = X_val,
-                               C = C,
+                               beta_cols = beta_cols,
                                Bspline = Bspline,
                                comp_dat_all = comp_dat_all,
-                               p0 = new_p,
+                               p0 = M_step_res$new_p,
                                p_val_num = p_val_num,
                                tol = tol,
                                max_iter = max_iter)
 
     if (any(is.na(single_pert_theta))) {
-      I_theta = matrix(data = NA,
-                       nrow = nrow(new_theta),
-                       ncol = nrow(new_theta))
+      I_coeff = matrix(data = NA,
+                       nrow = nrow(new_coeff),
+                       ncol = nrow(new_coeff))
       SE_CONVERGED = FALSE
     } else {
       spt_wide = matrix(data = rep(c(single_pert_theta),
-                                   times = ncol(I_theta)),
-                        ncol = ncol(I_theta),
+                                   times = ncol(I_coeff)),
+                        ncol = ncol(I_coeff),
                         byrow = FALSE)
-      #for the each kth row of single_pert_theta add to the kth row / kth column of I_theta
-      I_theta = I_theta - spt_wide - t(spt_wide)
+      #for the each kth row of single_pert_theta add to the kth row / kth column of I_coeff
+      I_coeff = I_coeff - spt_wide - t(spt_wide)
       SE_CONVERGED = TRUE
     }
 
-    for (c in 1:ncol(I_theta)) {
-      pert_theta = new_theta
-      pert_theta[c] = pert_theta[c] + h_N
-      double_pert_theta = sapply(X = seq(c, ncol(I_theta)),
-                                 FUN = pl_theta,
-                                 theta = pert_theta,
+    for (c in 1:ncol(I_coeff)) {
+      pert_coeff = new_coeff
+      pert_coeff[c] = pert_coeff[c] + h_N
+      double_pert_coeff = sapply(X = seq(c, ncol(I_coeff)),
+                                 FUN = smlePossum_negbin_pl,
+                                 beta_theta = pert_coeff,
                                  h_N = h_N,
                                  N = N,
                                  n = n,
                                  Y = Y,
-                                 X_val = X_val,
-                                 C = C,
+                                 beta_cols = beta_cols,
                                  Bspline = Bspline,
                                  comp_dat_all = comp_dat_all,
-                                 p0 = new_p,
+                                 p0 = M_step_res$new_p,
                                  p_val_num = p_val_num,
                                  max_iter = max_iter,
                                  tol = tol)
       dpt = matrix(data = 0,
-                   nrow = nrow(I_theta),
-                   ncol = ncol(I_theta))
-      dpt[c,c] = double_pert_theta[1] #Put double on the diagonal
-      if(c < ncol(I_theta)) {
+                   nrow = nrow(I_coeff),
+                   ncol = ncol(I_coeff))
+      dpt[c,c] = double_pert_coeff[1] # Put double on the diagonal
+      if(c < ncol(I_coeff)) {
         ## And fill the others in on the cth row/ column
-        dpt[c, -(1:c)] = dpt[-(1:c), c] = double_pert_theta[-1]
+        dpt[c, -(1:c)] = dpt[-(1:c), c] = double_pert_coeff[-1]
       }
-      I_theta = I_theta + dpt
+      I_coeff = I_coeff + dpt
     }
 
-    I_theta = h_N ^ (- 2) * I_theta
+    I_coeff = h_N ^ (- 2) * I_coeff
 
-    cov_theta = tryCatch(expr = - solve(I_theta),
+    cov_coeff = tryCatch(expr = - solve(I_coeff),
                          error = function(err) {
                            matrix(data = NA,
-                                  nrow = nrow(I_theta),
-                                  ncol = ncol(I_theta))
+                                  nrow = nrow(I_coeff),
+                                  ncol = ncol(I_coeff))
                          }
     )
     # ------------------------- Estimate Cov(theta) using profile likelihood
-    # if(any(diag(cov_theta) < 0)) {
+    # if(any(diag(cov_coeff) < 0)) {
     #   warning("Negative variance estimate. Increase the pert_scale parameter and repeat variance estimation.")
     #   SE_CONVERGED = FALSE
     # }
-    se_theta = tryCatch(expr = sqrt(diag(cov_theta)),
+    se_coeff = tryCatch(expr = sqrt(diag(cov_coeff)),
                         warning = function(w) {
-                          matrix(NA, nrow = nrow(prev_theta))
+                          matrix(NA, nrow = nrow(cov_coeff))
                         }
     )
-    if (any(is.na(se_theta))) { SE_CONVERGED = FALSE} else { TRUE }
+    if (any(is.na(se_coeff))) { SE_CONVERGED = FALSE} else { TRUE }
+
+    ## Return final estimates and convergence information ----------------------
+    coeff_df = data.frame(coeff = new_coeff,
+                          se = se_coeff,
+                          z = new_coeff / se_coeff,
+                          p = 2 * pnorm(q = abs(new_coeff / se_coeff), lower.tail = FALSE))
+    rownames(coeff_df) = c(beta_cols, "Dispersion")
+    colnames(coeff_df) = c("Estimate", "Std. Error", "z value", "Pr(>|z|)")
+    rownames(cov_coeff) = colnames(cov_coeff) = c(beta_cols, "Dispersion")
+
     if(output == "coeff") {
-      return(list(model_coeff = data.frame(coeff = new_theta,
-                                           se = se_theta),
-                  vcov = cov_theta,
+      return(list(coefficients = coeff_df,
+                  vcov = cov_coeff,
                   converged = CONVERGED,
                   se_converged = SE_CONVERGED,
                   converged_msg = CONVERGED_MSG))
     } else {
-      return(list(model_coeff = data.frame(coeff = new_theta,
-                                           se = se_theta),
-                  bspline_coeff = cbind(x_obs, new_p),
-                  vcov = cov_theta,
+      return(list(coefficients = coeff_df,
+                  bspline_coefficients = cbind(x_obs, M_step_res$new_p),
+                  vcov = cov_coeff,
                   predicted = xhat[order(data$orig_row)],
                   converged = CONVERGED,
                   se_converged = SE_CONVERGED,
                   converged_msg = CONVERGED_MSG,
                   iterations = it,
-                  od_loglik_at_conv = od_loglik_theta))
+                  od_loglik_at_conv = od_loglik_conv))
     }
-
-    ## Return final estimates and convergence information ----------------------
-    coeff_df = data.frame(coeff = new_beta,
-                          se = se_beta,
-                          z = new_beta / se_beta,
-                          p = 2 * pnorm(q = abs(new_beta / se_beta), lower.tail = FALSE))
-    rownames(coeff_df) = beta_cols
-    colnames(coeff_df) = c("Estimate", "Std. Error", "z value", "Pr(>|z|)")
-
-    misclass_coeff_df = data.frame(coeff = new_eta,
-                          se = se_eta,
-                          z = new_eta / se_eta,
-                          p = 2 * pnorm(q = abs(new_eta / se_eta), lower.tail = FALSE))
-    rownames(misclass_coeff_df) = eta_cols
-    colnames(misclass_coeff_df) = c("Estimate", "Std. Error", "z value", "Pr(>|z|)")
-
-    rownames(cov) = colnames(cov) = c(beta_cols, eta_cols)
-
-    return(list(coefficients = coeff_df,
-                misclass_coefficients = misclass_coeff_df,
-                vcov = cov,
-                converged = CONVERGED,
-                se_converged = SE_CONVERGED,
-                converged_msg = CONVERGED_MSG))
   }
   # --------------------------------------------- Create list and return results
 }
