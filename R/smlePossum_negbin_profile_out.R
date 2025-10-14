@@ -6,6 +6,12 @@ smlePossum_negbin_profile_out = function(beta, theta, N, n, Y, beta_cols, Bsplin
   m = nrow(p0)
   prev_p = p0
 
+  ## Make sure the beta coefficients are a column vector ------------
+  if (is.null(dim(beta))) {
+    beta = matrix(data = beta,
+                  ncol = 1)
+  }
+
   ## Create design matrix for P(Y|X,C) model ------------------------
   ### Only among unvalidated rows -----------------------------------
   theta_design_mat = cbind(int = 1,
