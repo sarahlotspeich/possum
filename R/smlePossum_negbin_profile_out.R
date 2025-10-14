@@ -50,7 +50,8 @@ smlePossum_negbin_profile_out = function(beta, theta, N, n, Y, beta_cols, Bsplin
                                  prev_p = prev_p,
                                  m = m,
                                  N = N,
-                                 n = n)
+                                 n = n,
+                                 tol = tol)
     ############################################################################
     # Check for convergence ----------------------------------------------------
     CONVERGED = M_step_res$prop_conv == 1
