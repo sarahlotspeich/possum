@@ -14,8 +14,7 @@ smlePossum_negbin_profile_out = function(beta, theta, N, n, Y, beta_cols, Bsplin
 
   ## Create design matrix for P(Y|X,C) model ------------------------
   ### Only among unvalidated rows -----------------------------------
-  theta_design_mat = cbind(int = 1,
-                           comp_dat_all[-c(1:n), c(beta_cols)])
+  theta_design_mat = comp_dat_all[-c(1:n), c(beta_cols)]
   ### Convert complete data to matrix -------------------------------
   comp_dat_all = as.matrix(comp_dat_all)
 

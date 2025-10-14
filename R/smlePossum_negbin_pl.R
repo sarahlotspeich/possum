@@ -1,7 +1,7 @@
 smlePossum_negbin_pl = function(k, beta_theta, h_N, N, n, Y, beta_cols, Bspline, comp_dat_all,
                                 p0 = NULL, p_val_num = NULL, tol, max_iter) {
   # Perturb the kth entry in beta_theta (combined) by h_N
-  pert = beta_theta
+  pert = as.vector(beta_theta)
   pert[k] = pert[k] + h_N
 
   # Split perturbed vector into beta and theta
