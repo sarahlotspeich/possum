@@ -29,8 +29,8 @@ smlePossum_negbin_profile_out = function(beta, theta, N, n, Y, beta_cols, Bsplin
   while(it <= max_iter & !CONVERGED) {
     ############################################################################
     # E Step -------------------------------------------------------------------
-    E_step_res = E_step_nb(beta = beta,
-                           theta = theta,
+    E_step_res = E_step_nb(prev_beta = beta,
+                           prev_theta = theta,
                            Y = Y,
                            beta_cols = beta_cols,
                            prev_p = prev_p,
@@ -45,8 +45,8 @@ smlePossum_negbin_profile_out = function(beta, theta, N, n, Y, beta_cols, Bsplin
                                  psi_t = E_step_res$psi_t,
                                  re_analysis_formula = re_analysis_formula,
                                  comp_dat_all = comp_dat_all,
-                                 beta = beta,
-                                 theta = theta,
+                                 prev_beta = beta,
+                                 prev_theta = theta,
                                  prev_p = prev_p,
                                  p_val_num = p_val_num,
                                  m = m,
