@@ -149,6 +149,7 @@ smlePossum_nb = function(analysis_formula, error_formula, data, no_se = TRUE, pe
                            prev_beta = prev_beta,
                            prev_theta = prev_theta,
                            prev_p = prev_p,
+                           p_val_num = p_val_num,
                            m = m,
                            N = N,
                            n = n,
