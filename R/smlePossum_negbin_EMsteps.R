@@ -38,7 +38,8 @@ E_step_nb = function(prev_beta, prev_theta, Y, beta_cols, ## parameters / variab
 M_step_nb = function(phi_aug, psi_t, ## weights and quantities from the E-step
                      re_analysis_formula, comp_dat_all, prev_beta, prev_theta, ## to update parameters for the outcome model Y|X,Z
                      prev_p, ## to update parameters for the exposure model X|X*(,Z)
-                     m, N, n) { ## sample sizes (for indexing)
+                     m, N, n, ## sample sizes (for indexing)
+                     tol) { ## criterion for convergence
   ## Update beta using weighted negative binomial regression -------------------
   new_fit = glm.nb(formula = re_analysis_formula,
                    data = data.frame(cbind(comp_dat_all, phi_aug)),
@@ -72,7 +73,8 @@ M_step_nb = function(phi_aug, psi_t, ## weights and quantities from the E-step
 M_step_nb_ponly = function(phi_aug, psi_t, ## weights and quantities from the E-step
                            re_analysis_formula, comp_dat_all, prev_beta, prev_theta, ## to update parameters for the outcome model Y|X,Z
                            prev_p, ## to update parameters for the exposure model X|X*(,Z)
-                           m, N, n) { ## sample sizes (for indexing)
+                           m, N, n, ## sample sizes (for indexing)
+                           tol) { ## criterion for convergence
   ##############################################################################
   ## Update {p_kj} -------------------------------------------------------------
   ### Update numerators by summing u_t over i = 1, ..., N ----------------------

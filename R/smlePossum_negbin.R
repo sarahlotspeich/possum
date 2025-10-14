@@ -151,7 +151,8 @@ smlePossum_nb = function(analysis_formula, error_formula, data, no_se = TRUE, pe
                            prev_p = prev_p,
                            m = m,
                            N = N,
-                           n = n)
+                           n = n,
+                           tol = tol)
     ############################################################################
     # Check for global convergence ---------------------------------------------
     CONVERGED = M_step_res$prop_conv == 1
