@@ -16,11 +16,11 @@ smlePossum_negbin_profile_out = function(beta, theta, N, n, Y, beta_cols, Bsplin
   ## Calculate P(Y|X) for theta, since it won't update --------------
   ### Only among unvalidated rows -----------------------------------
   #### mu = exp(beta0 + beta1X + beta2Z + ) ...
-  mu_beta = exp(as.numeric(theta_design_mat %*% prev_beta))
+  mu_beta = exp(as.numeric(theta_design_mat %*% beta))
   #### Calculate P(Y|X,Z) from negative binomial distribution -------
   pYgivX = dnbinom(x = comp_dat_all[-c(1:n), Y],
-                   size = prev_theta,
-                   prob = (prev_theta / (mu_beta + prev_theta)))
+                   size = theta,
+                   prob = (theta / (mu_beta + theta)))
 
   # Estimate p using EM -----------------------------------------------
   CONVERGED = FALSE
@@ -29,8 +29,8 @@ smlePossum_negbin_profile_out = function(beta, theta, N, n, Y, beta_cols, Bsplin
   while(it <= max_iter & !CONVERGED) {
     ############################################################################
     # E Step -------------------------------------------------------------------
-    E_step_res = E_step_nb(prev_beta = prev_beta,
-                           prev_theta = prev_theta,
+    E_step_res = E_step_nb(beta = beta,
+                           theta = theta,
                            Y = Y,
                            beta_cols = beta_cols,
                            prev_p = prev_p,
@@ -45,8 +45,8 @@ smlePossum_negbin_profile_out = function(beta, theta, N, n, Y, beta_cols, Bsplin
                                  psi_t = E_step_res$psi_t,
                                  re_analysis_formula = re_analysis_formula,
                                  comp_dat_all = comp_dat_all,
-                                 prev_beta = prev_beta,
-                                 prev_theta = prev_theta,
+                                 beta = beta,
+                                 theta = theta,
                                  prev_p = prev_p,
                                  p_val_num = p_val_num,
                                  m = m,
