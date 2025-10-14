@@ -2,38 +2,36 @@
 % Please edit documentation in R/smlePossum_negbin.R
 \name{smlePossum_nb}
 \alias{smlePossum_nb}
-\title{Sieve maximum likelihood estimation for Poisson regression problems with covariate misclassification
-This function returns the maximum likelihood estimates (MLEs) for the Poisson regression model with covariate misclassification from Mullan et al. (2024+)}
+\title{Sieve maximum likelihood estimation for negative binomial regression problems with covariate measurement error
+This function returns the sieve maximum likelihood estimates (SMLEs) for the negative binomial regression model with covariate measurement error from Lotspeich et al. (2025+)}
 \usage{
 smlePossum_nb(
   analysis_formula,
   error_formula,
   data,
-  beta_init = "Zero",
-  noSE = TRUE,
-  hN_scale = 1,
-  TOL = 1e-04,
-  MAX_ITER = 1000
+  no_se = TRUE,
+  pert_scale = 1,
+  tol = 1e-04,
+  max_iter = 1000,
+  output = "coeff"
 )
 }
 \arguments{
-\item{analysis_formula}{analysis model formula (or coercible to formula), a formula expression as for other regression models. The response should be the Poisson model outcome, and, if needed, the offset can be provided as an \code{offset()} term.}
+\item{analysis_formula}{analysis model formula (or coercible to formula), a formula expression as for other regression models. The response should be the negative binomial model outcome.}
 
 \item{error_formula}{formula, covariate error model formula (or coercible to formula), a formula expression as for other regression models. The response should be the error-free version of the error-prone of the covariate, and the covariate should be the names of the B-spline columns.}
 
 \item{data}{dataset containing at least the variables included in \code{error_formula} and \code{analysis_formula}.}
 
-\item{beta_init}{Initial values used to fit \code{analysis_formula}. Choices include (1) \code{"Zero"} (non-informative starting values, the default) or (2) \code{"Complete-data"} (estimated based on validated data only).}
+\item{no_se}{Indicator for whether standard errors are desired. Defaults to \code{no_se = FALSE}.}
 
-\item{noSE}{Indicator for whether standard errors are desired. Defaults to \code{noSE = FALSE}.}
+\item{pert_scale}{Size of the perturbation used in estimating the standard errors via profile likelihood. If none is supplied, default is \code{pert_scale = 1}.}
 
-\item{hN_scale}{Size of the perturbation used in estimating the standard errors via profile likelihood. If none is supplied, default is \code{hN_scale = 1}.}
+\item{tol}{Tolerance between iterations in the EM algorithm used to define convergence.}
 
-\item{TOL}{Tolerance between iterations in the EM algorithm used to define convergence.}
+\item{max_iter}{Maximum number of iterations allowed in the EM algorithm.}
 
-\item{MAX_ITER}{Maximum number of iterations allowed in the EM algorithm.}
-
-\item{family}{analysis model family, to be passed through to \code{glm}. See \code{?glm} for options.}
+\item{output}{character, level of fitted model output to be returned. Defaults to \code{output = "coeff"}, but \code{output = "all"} is also possible.}
 }
 \value{
 \item{coefficients}{dataframe with final coefficient and standard error estimates (where applicable) for the analysis model.}
@@ -43,6 +41,6 @@ smlePossum_nb(
 \item{converged_msg}{(where applicable) description of non-convergence.}
 }
 \description{
-Sieve maximum likelihood estimation for Poisson regression problems with covariate misclassification
-This function returns the maximum likelihood estimates (MLEs) for the Poisson regression model with covariate misclassification from Mullan et al. (2024+)
+Sieve maximum likelihood estimation for negative binomial regression problems with covariate measurement error
+This function returns the sieve maximum likelihood estimates (SMLEs) for the negative binomial regression model with covariate measurement error from Lotspeich et al. (2025+)
 }
