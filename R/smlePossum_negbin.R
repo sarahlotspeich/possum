@@ -112,7 +112,7 @@ smlePossum_nb = function(analysis_formula, error_formula, data, no_se = TRUE, pe
   ## Set initial values for beta and theta -------------------------------------
   beta_cols = c("int", X_val, C)
   cc_fit = glm.nb(formula = re_analysis_formula,
-                  data = comp_dat_val)
+                  data = data.frame(comp_dat_val))
   prev_beta = beta0 = matrix(data = cc_fit$coefficients,
                              ncol = 1)
   prev_theta = theta0 = cc_fit$theta
