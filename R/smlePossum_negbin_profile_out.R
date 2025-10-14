@@ -18,6 +18,9 @@ smlePossum_negbin_profile_out = function(beta, theta, N, n, Y, beta_cols, Bsplin
   ### Convert complete data to matrix -------------------------------
   comp_dat_all = as.matrix(comp_dat_all)
 
+  ## Split off complete data for unvalidated rows -------------------
+  comp_dat_unval = comp_dat_all[-c(1:n), ]
+
   ## Calculate P(Y|X) for theta, since it won't update --------------
   ### Only among unvalidated rows -----------------------------------
   #### mu = exp(beta0 + beta1X + beta2Z + ) ...
