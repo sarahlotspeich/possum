@@ -111,10 +111,15 @@ smlePossum_nb = function(analysis_formula, error_formula, data, no_se = TRUE, pe
   # Initialize analysis model parameters (beta) --------------------------------
   ## Set initial values for beta and theta -------------------------------------
   beta_cols = c("int", X_val, C)
-  prev_beta = beta0 = matrix(data = 0,
-                             nrow = length(beta_cols),
+  cc_fit = glm.nb(formula = re_analysis_formula,
+                  data = comp_dat_val)
+  prev_beta = beta0 = matrix(data = cc_fit$coefficients,
                              ncol = 1)
-  prev_theta = 1E-3
+  prev_theta = theta0 = cc_fit$theta
+  # prev_beta = beta0 = matrix(data = 0,
+  #                            nrow = length(beta_cols),
+  #                            ncol = 1)
+  # prev_theta = 1E-3
   ### Set initial values for B-spline coefficients {p_kj} ----------------------
   p_val_num = rowsum(x = comp_dat_val[, Bspline],
                      group = comp_dat_val[, "k"],

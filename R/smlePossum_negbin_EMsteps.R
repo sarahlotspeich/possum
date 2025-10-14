@@ -43,7 +43,8 @@ M_step_nb = function(phi_aug, psi_t, ## weights and quantities from the E-step
   ## Update beta using weighted negative binomial regression -------------------
   new_fit = glm.nb(formula = re_analysis_formula,
                    data = data.frame(cbind(comp_dat_all, phi_aug)),
-                   weights = phi_aug)
+                   weights = phi_aug,
+                   init.theta = prev_theta) ### for computational efficiency, only iterate once
   new_beta = matrix(data = new_fit$coefficients,
                     ncol = 1)
   new_theta = new_fit$theta
