@@ -27,7 +27,7 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
                      hN_scale = 1, TOL = 1E-4, MAX_ITER = 1000) {
   ## Convert data --> data.frame (in case a tibble, etc. was supplied) ---------
   data = data.frame(data)
-		
+
   ## Extract variable names from user-specified formulas + model matrices ------
   ### Analysis model
   Y = as.character(as.formula(analysis_formula))[2] ### Outcome
@@ -191,16 +191,31 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
 
   ## If PPV among queried subset is almost perfect, just fit usual model -------
   if (round(queried_ppv, 3) == 1) {
-    # vanilla_mod <- glm(formula = as.formula(analysis_formula),
-    #                    family = tolower(family),
-    #                    data = data)
-    return(list(coefficients = data.frame(coeff = NA,
-                                          se = NA),
-                misclass_coefficients = data.frame(coeff = NA, se = NA),
+    vanilla_mod <- glm(formula = as.formula(analysis_formula),
+                       family = family,
+                       data = data)
+    new_beta = as.vector(vanilla_mod$coefficients)
+    se_beta = as.vector(sqrt(diag(vcov(vanilla_mod))))
+    coeff_df = data.frame(coeff = new_beta,
+                          se = se_beta,
+                          z = new_beta / se_beta,
+                          p = 2 * pnorm(q = abs(new_beta / se_beta), lower.tail = FALSE))
+    rownames(coeff_df) = beta_cols
+    colnames(coeff_df) = c("Estimate", "Std. Error", "z value", "Pr(>|z|)")
+
+    misclass_coeff_df = data.frame(coeff = rep(NA, length(eta_cols)),
+                                   se = rep(NA, length(eta_cols)),
+                                   z = rep(NA, length(eta_cols)),
+                                   p = rep(NA, length(eta_cols)))
+    rownames(misclass_coeff_df) = eta_cols
+    colnames(misclass_coeff_df) = c("Estimate", "Std. Error", "z value", "Pr(>|z|)")
+
+    return(list(coefficients = coeff_df,
+                misclass_coefficients = misclass_coeff_df,
                 vcov = NA,
                 converged = NA,
                 se_converged = NA,
-                converged_msg = "Validated PPV = 1, use standard GLM "))
+                converged_msg = "Validated PPV = 1, used standard GLM "))
   }
 
   ## Otherwise, begin EM algorithm ---------------------------------------------
