@@ -7,7 +7,8 @@ Description: Fits poisson regression models with errors in covariates using maxi
 Imports:
   spaMM,
   numDeriv, 
-  MASS
+  MASS, 
+  bizicount
 License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
     license
 Encoding: UTF-8
