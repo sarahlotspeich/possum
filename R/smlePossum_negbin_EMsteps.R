@@ -1,15 +1,15 @@
 E_step_nb = function(prev_beta, prev_theta, Y, beta_cols, ## parameters / variables for the outcome model Y|X,Z
                      prev_p, Bspline, comp_dat_unval, ## parameters / variables for the exposure model X|X*(,Z)
                       m, N, n) { ## sample sizes (for indexing)
-  ## Update the phi_xi = P(X=x|Yi,Xi*,Z) for unvalidated subjects ------------
-  ### Analysis model: P(Y|X,Z) -----------------------------------------------
+  ## Update the phi_xi = P(X=x|Yi,Xi*,Z) for unvalidated subjects --------------
+  ### Analysis model: P(Y|X,Z) -------------------------------------------------
   #### mu = exp(beta0 + beta1X + beta2Z + ) ...
   mu_beta = exp(as.numeric(comp_dat_unval[, beta_cols] %*% prev_beta))
-  #### Calculate P(Y|X,Z) from negative binomial distribution ----------------
+  #### Calculate P(Y|X,Z) from negative binomial distribution ------------------
   pYgivX = dnbinom(x = comp_dat_unval[, Y],
                    size = prev_theta,
                    prob = (prev_theta / (mu_beta + prev_theta)))
-  ### Error mechanism: P(X|X*,Z) ---------------------------------------------
+  ### Error mechanism: P(X|X*,Z) -----------------------------------------------
   pX = prev_p[rep(seq(1, m), each = (N - n)), ] *
     comp_dat_unval[, Bspline]
   ##############################################################################
@@ -44,7 +44,8 @@ M_step_nb = function(phi_aug, psi_t, ## weights and quantities from the E-step
   new_fit = glm.nb(formula = re_analysis_formula,
                    data = data.frame(cbind(comp_dat_all, phi_aug)),
                    weights = phi_aug,
-                   init.theta = prev_theta) ### for computational efficiency, only iterate once
+                   init.theta = prev_theta)
+                   #control = glm.control(maxit = 2))
   new_beta = matrix(data = new_fit$coefficients,
                     ncol = 1)
   new_theta = new_fit$theta
