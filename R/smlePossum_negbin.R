@@ -1,13 +1,13 @@
 #' Sieve maximum likelihood estimation for negative binomial regression problems with covariate measurement error
 #' This function returns the sieve maximum likelihood estimates (SMLEs) for the negative binomial regression model with covariate measurement error from Lotspeich et al. (2025+)
 #'
-#' @param analysis_formula analysis model formula (or coercible to formula), a formula expression as for other regression models. The response should be the negative binomial model outcome.
+#' @param analysis_formula formula, analysis model formula (or coercible to formula), a formula expression as for other regression models. The response should be the negative binomial model outcome.
 #' @param error_formula formula, covariate error model formula (or coercible to formula), a formula expression as for other regression models. The response should be the error-free version of the error-prone of the covariate, and the covariate should be the names of the B-spline columns.
-#' @param data dataset containing at least the variables included in \code{error_formula} and \code{analysis_formula}.
-#' @param no_se Indicator for whether standard errors are desired. Defaults to \code{no_se = FALSE}.
-#' @param pert_scale Size of the perturbation used in estimating the standard errors via profile likelihood. If none is supplied, default is \code{pert_scale = 1}.
-#' @param tol Tolerance between iterations in the EM algorithm used to define convergence.
-#' @param max_iter Maximum number of iterations allowed in the EM algorithm.
+#' @param data dataset, containing at least the variables included in \code{error_formula} and \code{analysis_formula}.
+#' @param no_se logical, indicator for whether standard errors are desired. Defaults to \code{no_se = FALSE}.
+#' @param pert_scale numeric, size of the perturbation used in estimating the standard errors via profile likelihood. If none is supplied, default is \code{pert_scale = 1}.
+#' @param tol numeric, tolerance between iterations in the EM algorithm used to define convergence.
+#' @param max_iter numeric, maximum number of iterations allowed in the EM algorithm.
 #' @param output character, level of fitted model output to be returned. Defaults to \code{output = "coeff"}, but \code{output = "all"} is also possible.
 #' @return
 #' \item{coefficients}{dataframe with final coefficient and standard error estimates (where applicable) for the analysis model.}

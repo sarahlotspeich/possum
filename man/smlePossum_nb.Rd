@@ -17,19 +17,19 @@ smlePossum_nb(
 )
 }
 \arguments{
-\item{analysis_formula}{analysis model formula (or coercible to formula), a formula expression as for other regression models. The response should be the negative binomial model outcome.}
+\item{analysis_formula}{formula, analysis model formula (or coercible to formula), a formula expression as for other regression models. The response should be the negative binomial model outcome.}
 
 \item{error_formula}{formula, covariate error model formula (or coercible to formula), a formula expression as for other regression models. The response should be the error-free version of the error-prone of the covariate, and the covariate should be the names of the B-spline columns.}
 
-\item{data}{dataset containing at least the variables included in \code{error_formula} and \code{analysis_formula}.}
+\item{data}{dataset, containing at least the variables included in \code{error_formula} and \code{analysis_formula}.}
 
-\item{no_se}{Indicator for whether standard errors are desired. Defaults to \code{no_se = FALSE}.}
+\item{no_se}{logical, indicator for whether standard errors are desired. Defaults to \code{no_se = FALSE}.}
 
-\item{pert_scale}{Size of the perturbation used in estimating the standard errors via profile likelihood. If none is supplied, default is \code{pert_scale = 1}.}
+\item{pert_scale}{numeric, size of the perturbation used in estimating the standard errors via profile likelihood. If none is supplied, default is \code{pert_scale = 1}.}
 
-\item{tol}{Tolerance between iterations in the EM algorithm used to define convergence.}
+\item{tol}{numeric, tolerance between iterations in the EM algorithm used to define convergence.}
 
-\item{max_iter}{Maximum number of iterations allowed in the EM algorithm.}
+\item{max_iter}{numeric, maximum number of iterations allowed in the EM algorithm.}
 
 \item{output}{character, level of fitted model output to be returned. Defaults to \code{output = "coeff"}, but \code{output = "all"} is also possible.}
 }
