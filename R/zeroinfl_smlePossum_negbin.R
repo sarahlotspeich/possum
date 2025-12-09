@@ -320,7 +320,6 @@ zeroinfl_smlePossum_nb = function(analysis_formula, error_formula, data, no_se =
                                p_val_num = p_val_num,
                                tol = tol,
                                max_iter = max_iter)
-
     if (any(is.na(single_pert_coeff))) {
       I_coeff = matrix(data = NA,
                        nrow = nrow(new_coeff),
@@ -341,7 +340,7 @@ zeroinfl_smlePossum_nb = function(analysis_formula, error_formula, data, no_se =
       pert_coeff[c] = pert_coeff[c] + h_N
       double_pert_coeff = sapply(X = seq(c, ncol(I_coeff)),
                                  FUN = zeroinfl_smlePossum_negbin_pl,
-                                 beta_theta_eta = new_coeff,
+                                 beta_theta_eta = pert_coeff,
                                  h_N = h_N,
                                  N = N,
                                  n = n,
@@ -384,7 +383,7 @@ zeroinfl_smlePossum_nb = function(analysis_formula, error_formula, data, no_se =
                           matrix(NA, nrow = nrow(cov_coeff))
                         }
     )
-    if (any(is.na(se_coeff))) { SE_CONVERGED = FALSE} else { TRUE }
+    if (any(is.na(se_coeff))) { SE_CONVERGED = FALSE } else { TRUE }
 
     ## Return final estimates and convergence information ----------------------
     coeff_df = data.frame(coeff = new_coeff,
