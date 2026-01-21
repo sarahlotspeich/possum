@@ -10,20 +10,20 @@ zeroinfl_smlePossum_negbin_pl = function(k, beta_theta_eta, h_N, N, n, Y, beta_c
   pert_eta = pert
 
   # Find the B-spline coefficients p based on pert
-  pl_params = smlePossum_negbin_profile_out(beta = pert_beta,
-                                            eta = pert_eta,
-                                            theta = pert_theta,
-                                            N = N,
-                                            n = n,
-                                            Y = Y,
-                                            beta_cols = beta_cols,
-                                            eta_cols = eta_cols,
-                                            Bspline = Bspline,
-                                            comp_dat_all = comp_dat_all,
-                                            p0 = p0,
-                                            p_val_num = p_val_num,
-                                            tol = tol,
-                                            max_iter = max_iter)
+  pl_params = zeroinfl_smlePossum_negbin_profile_out(beta = pert_beta,
+                                                     eta = pert_eta,
+                                                     theta = pert_theta,
+                                                     N = N,
+                                                     n = n,
+                                                     Y = Y,
+                                                     beta_cols = beta_cols,
+                                                     eta_cols = eta_cols,
+                                                     Bspline = Bspline,
+                                                     comp_dat_all = comp_dat_all,
+                                                     p0 = p0,
+                                                     p_val_num = p_val_num,
+                                                     tol = tol,
+                                                     max_iter = max_iter)
 
   # If profile parameters converged, calculate observed-data log-likelihood
   if(pl_params$converged) {
