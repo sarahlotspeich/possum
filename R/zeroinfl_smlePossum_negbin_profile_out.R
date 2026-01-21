@@ -1,24 +1,24 @@
 zeroinfl_smlePossum_negbin_profile_out = function(beta, eta, theta, N, n, beta_cols, eta_cols, Y, Bspline, comp_dat_all,
                                          p0, p_val_num, tol, max_iter) {
-  # Save useful constants -------------------------------------------
-  ## Dimensions and starting values ---------------------------------
+  # Save useful constants ------------------------------------------------------
+  ## Dimensions and starting values --------------------------------------------
   sn = ncol(p0)
   m = nrow(p0)
   prev_p = p0
 
-  ## Create design matrix for P(Y|X,C) model ------------------------
-  ### Convert complete data to matrix -------------------------------
+  ## Create design matrix for P(Y|X,C) model -----------------------------------
+  ### Convert complete data to matrix ------------------------------------------
   comp_dat_all = as.matrix(comp_dat_all)
 
-  ## Split off complete data for unvalidated rows -------------------
+  ## Split off complete data for unvalidated rows ------------------------------
   comp_dat_unval = comp_dat_all[-c(1:n), ]
 
-  # Estimate p using EM -----------------------------------------------
+  ##############################################################################
+  # Estimate p using EM --------------------------------------------------------
   CONVERGED = FALSE
   CONVERGED_MSG = "Unknown"
   it = 1
   while(it <= max_iter & !CONVERGED) {
-    ############################################################################
     # E Step -------------------------------------------------------------------
     E_step_res = E_step_zeroinfl_nb(beta_cols = beta_cols,
                                     eta_cols = eta_cols,
