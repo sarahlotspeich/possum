@@ -72,8 +72,7 @@ M_step_nb = function(phi_aug, psi_t, ## weights and quantities from the E-step
               prop_conv = prop_conv))
 }
 
-M_step_nb_ponly = function(phi_aug, psi_t, ## weights and quantities from the E-step
-                           re_analysis_formula, comp_dat_all, prev_beta, prev_theta, ## to update parameters for the outcome model Y|X,Z
+M_step_nb_ponly = function(psi_t, ## weights from the E-step
                            prev_p, p_val_num, ## to update parameters for the exposure model X|X*(,Z)
                            m, N, n, ## sample sizes (for indexing)
                            tol) { ## criterion for convergence
