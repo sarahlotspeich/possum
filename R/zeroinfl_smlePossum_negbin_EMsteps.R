@@ -98,9 +98,9 @@ M_step_zeroinfl_nb = function(phi_aug, psi_t, ## weights and quantities from the
 }
 
 M_step_zeroinfl_nb_ponly = function(psi_t, ## weights and quantities from the E-step
-                           prev_p, p_val_num, ## to update parameters for the exposure model X|X*(,Z)
-                           m, N, n, ## sample sizes (for indexing)
-                           tol) { ## criterion for convergence
+                                    prev_p, p_val_num, ## to update parameters for the exposure model X|X*(,Z)
+                                    m, N, n, ## sample sizes (for indexing)
+                                    tol) { ## criterion for convergence
   ##############################################################################
   ## Update {p_kj} -------------------------------------------------------------
   ### Update numerators by summing u_t over i = 1, ..., N ----------------------
