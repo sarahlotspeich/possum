@@ -35,8 +35,7 @@ zeroinfl_smlePossum_negbin_profile_out = function(beta, eta, theta, N, n, beta_c
                                     use_predict_pYgivX = FALSE) ### use built-in PMF with values provided
     ############################################################################
     # M Step (but only update the p_{kj}) --------------------------------------
-    M_step_res = M_step_zeroinfl_nb_ponly(phi_aug = E_step_res$phi_aug,
-                                          psi_t = E_step_res$psi_t,
+    M_step_res = M_step_zeroinfl_nb_ponly(psi_t = E_step_res$psi_t,
                                           prev_p = prev_p,
                                           p_val_num = p_val_num,
                                           m = m,
