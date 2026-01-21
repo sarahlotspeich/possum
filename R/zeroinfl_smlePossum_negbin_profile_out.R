@@ -1,4 +1,4 @@
-smlePossum_negbin_profile_out = function(beta, eta, theta, N, n, beta_cols, eta_cols, Y, Bspline, comp_dat_all,
+zeroinfl_smlePossum_negbin_profile_out = function(beta, eta, theta, N, n, beta_cols, eta_cols, Y, Bspline, comp_dat_all,
                                          p0, p_val_num, tol, max_iter) {
   # Save useful constants -------------------------------------------
   ## Dimensions and starting values ---------------------------------
