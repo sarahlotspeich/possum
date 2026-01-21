@@ -97,7 +97,7 @@ M_step_zeroinfl_nb = function(phi_aug, psi_t, ## weights and quantities from the
               prop_conv = prop_conv))
 }
 
-M_step_zeroinfl_nb_ponly = function(phi_aug, psi_t, ## weights and quantities from the E-step
+M_step_zeroinfl_nb_ponly = function(psi_t, ## weights and quantities from the E-step
                            prev_p, p_val_num, ## to update parameters for the exposure model X|X*(,Z)
                            m, N, n, ## sample sizes (for indexing)
                            tol) { ## criterion for convergence
