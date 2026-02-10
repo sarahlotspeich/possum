@@ -91,32 +91,21 @@ mlePossum = function(analysis_formula, family = poisson, error_formula, data,
                                     X = X,
                                     offset = offset)
 
-  ## Create augmented (X*,x,Y,Z) for unvalidated rows --------------------------
-  ### First (N-n) rows assume X = 0 --------------------------------------------
-  comp_dat0 = make_complete_data(data = data,
-                                 analysis_formula = analysis_formula,
-                                 error_formula = error_formula,
-                                 rows = -c(1:n),
-                                 Y = Y,
-                                 X = X,
-                                 offset = offset,
-                                 x = 0)
-  # comp_dat0 = data.matrix(data[-c(1:n), c(Y, offset, X_unval, X, Z, "row_num")])
-  # comp_dat0[, X] = 0
-  ### Last (N-n) rows assume X = 1 ---------------------------------------------
-  comp_dat1 = make_complete_data(data = data,
-                                 analysis_formula = analysis_formula,
-                                 error_formula = error_formula,
-                                 rows = -c(1:n),
-                                 Y = Y,
-                                 X = X,
-                                 offset = offset,
-                                 x = 1)
-  # comp_dat1 = data.matrix(data[-c(1:n), c(Y, offset, X_unval, X, Z, "row_num")])
-  # comp_dat1[, X] = 1
-  ### Put them together --------------------------------------------------------
-  comp_dat_unval = data.matrix(rbind(comp_dat0,
-                                     comp_dat1))
+  ## Create augmented (X*,x,Y,Z) f
+  unique_X = unique(data[, X]) ### Create vector of unique x values to try
+  unique_X = sort(unique_X) ### Sort them from smallest to largest 
+  comp_dat_unval = data.frame() ### Create empty dataframe to build onto 
+  for (xk in unique_X) {
+    comp_dat_unval = rbind(comp_dat_unval, 
+                           make_complete_data(data = data,
+                                              analysis_formula = analysis_formula,
+                                              error_formula = error_formula,
+                                              rows = -c(1:n),
+                                              Y = Y,
+                                              X = X,
+                                              offset = offset,
+                                              x = xk))
+  }
   colnames(comp_dat_unval) = colnames(comp_dat_val) ## Coerce colnames to match
 
   ## Create augmented "complete" dataset of validated and unvalidated ----------
