@@ -263,3 +263,12 @@ make_complete_data = function(data, analysis_formula, error_formula,
   comp_dat = comp_dat[, unique(colnames(comp_dat))] ### Get rid of potential duplicate columns
   return(comp_dat)
 }
+
+is_binary <- function(v) {
+  # Get unique values, removing NAs
+  unique_values <- unique(v)
+  unique_values <- unique_values[!is.na(unique_values)]
+  
+  # Check if there are exactly two unique values
+  return(length(unique_values) == 2)
+}
